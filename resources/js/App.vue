@@ -10,16 +10,7 @@
                         {{ state.app.name }}
                     </template>
                 </router-link>
-                <template v-if="state.headerLeftLink">
-                    <a v-if="state.headerLeftLink.href" :href="state.headerLeftLink.href" class="w-full bg-white cta-btn font-semibold py-2 mt-5 rounded-br-lg rounded-bl-lg rounded-tr-lg shadow-lg hover:shadow-xl hover:bg-gray-300 flex items-center justify-center">
-                        <Icon :name="state.headerLeftLink.icon" class="mr-3"/>
-                        {{ state.headerLeftLink.name }}
-                    </a>
-                    <router-link v-else :to="state.headerLeftLink.to" class="w-full bg-white cta-btn font-semibold py-2 mt-5 rounded-br-lg rounded-bl-lg rounded-tr-lg shadow-lg hover:shadow-xl hover:bg-gray-300 flex items-center justify-center">
-                        <Icon :name="state.headerLeftLink.icon" class="mr-3"/>
-                        {{ state.headerLeftLink.name }}
-                    </router-link>
-                </template>
+
             </div>
             <nav class="text-white text-base py-4 px-3 rounded">
                 <Menu :state="state" :type="'desktop'"/>
@@ -140,6 +131,30 @@ export default {
                     showMobile: true,
                     requiresAbility: false,
                     to: '/panel/dashboard',
+                },
+                {
+                    name: trans('global.pages.markets'),
+                    icon: 'bank',
+                    showDesktop: true,
+                    showMobile: true,
+                    requiresAbility: false,
+                    to: '/page/markets',
+                },
+                {
+                    name: trans('global.pages.trading'),
+                    icon: 'bar-chart',
+                    showDesktop: true,
+                    showMobile: true,
+                    requiresAbility: false,
+                    to: '/page/trading',
+                },
+                {
+                    name: trans('global.pages.orders'),
+                    icon: 'book',
+                    showDesktop: true,
+                    showMobile: true,
+                    requiresAbility: false,
+                    to: '/page/orders',
                 },
                 {
                     name: trans('global.pages.users'),

@@ -6,6 +6,9 @@ import {default as PageNotFound} from "@/views/pages/shared/404/Main";
 
 import {default as PageDashboard} from "@/views/pages/private/dashboard/Main";
 import {default as PageProfile} from "@/views/pages/private/profile/Main";
+import {default as PageMarkets} from "@/views/pages/private/markets/Main";
+import {default as PageTrading} from "@/views/pages/private/trading/Main";
+import {default as PageOrders} from "@/views/pages/private/orders/Main";
 
 import {default as PageUsers} from "@/views/pages/private/users/Index";
 import {default as PageUsersCreate} from "@/views/pages/private/users/Create";
@@ -60,6 +63,24 @@ const routes = [
                 ]
             },
         ]
+    },
+    {
+        name: "markets",
+        path: "/page/markets",
+        meta: {requiresAuth: true},
+        component: PageMarkets,
+    },
+    {
+        name: "trading",
+        path: "/page/trading",
+        meta: {requiresAuth: true},
+        component: PageTrading,
+    },
+    {
+        name: "orders",
+        path: "/page/orders",
+        meta: {requiresAuth: true},
+        component: PageOrders,
     },
     {
         path: "/login",

@@ -59,7 +59,10 @@ return [
             "login" => "Login",
             "logout" => "Logout",
             "forgot_password" => "Forgot Password",
-            "reset_password" => "Reset Password"
+            "reset_password" => "Reset Password",
+            "trading" => "Trading",
+            "markets" => "Markets",
+            "orders" => "Orders"
         ],
         "phrases" => [
             'clear_filters' => 'Clear all',

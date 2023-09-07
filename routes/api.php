@@ -1,5 +1,8 @@
 <?php
 
+use App\Http\Controllers\BinanceController;
+use App\Http\Controllers\ExchangeController;
+use App\Http\Controllers\HomeworkController;
 use App\Http\Controllers\RoleController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
@@ -36,4 +39,16 @@ Route::middleware(['auth:sanctum', 'apply_locale'])->group(function () {
      * Roles
      */
     Route::get('/roles/search', [RoleController::class, 'search'])->middleware('throttle:400,1');
+
+    /**
+     * Trading
+     */
+    Route::get('/trading/binance', [BinanceController::class, 'index']);
+    Route::get('/trading/exchange/kline', [ExchangeController::class, 'kline']);
+    Route::get('/trading/exchange/info', [ExchangeController::class, 'info']);
+    Route::get('/trading/exchange/symbols', [ExchangeController::class, 'symbols']);
+    Route::get('/trading/exchange/timeframes', [ExchangeController::class, 'timeframes']);
+    Route::get('/trading/exchange/strategies', [ExchangeController::class, 'strategies']);
+    Route::get('/trading/exchange/symbol/info', [ExchangeController::class, 'symbolInfo']);
+    Route::resource('homework', HomeworkController::class);
 });

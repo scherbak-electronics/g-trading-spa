@@ -45,10 +45,51 @@ return [
             "avatar_settings" => "Avatar Settings",
         ]
     ],
+    "trading" => [
+        "labels" => [
+            "timeframe" => "Timeframe",
+            "strategy" => "Strategy",
+            "direction" => "Direction",
+            "symbol" => "Symbol",
+            "options" => [
+                "timeframe" => [
+                    '1s' => '1 sec',
+                    '1m' => '1 min',
+                    '3m' => '3 min',
+                    '5m' => '5 min',
+                    '15m' => '15 min',
+                    '30m' => '30 min',
+                    '1h' => '1 hour',
+                    '2h' => '2 hour',
+                    '4h' => '4 hour',
+                    '6h' => '6 hour',
+                    '8h' => '8 hour',
+                    '12h' => '12 hour',
+                    '1d' => '1 day',
+                    '3d' => '3 day',
+                    '1w' => '1 week',
+                    '1M' => '1 month'
+                ],
+                "strategy" => [
+                    'bounce' => 'Bounce Off',
+                    'breakout' => 'Breakout',
+                    'false_breakout' => 'False Breakout'
+                ],
+                "direction" => [
+                    'long' => 'Long',
+                    'short' => 'Short'
+                ]
+            ]
+        ]
+    ],
     "messages" => [
         "name" => "Message"
     ],
     "global" => [
+        "labels" => [
+            "title" => "Title",
+            "description" => "Description"
+        ],
         "pages" => [
             "home" => "Dashboard",
             "users" => "Users",
@@ -62,7 +103,11 @@ return [
             "reset_password" => "Reset Password",
             "trading" => "Trading",
             "markets" => "Markets",
-            "orders" => "Orders"
+            "orders" => "Orders",
+            "dev" => "Debug",
+            "homework" => "Homework",
+            "homework_create" => "Create Homework",
+            "homework_list" => "Homework List"
         ],
         "phrases" => [
             'clear_filters' => 'Clear all',

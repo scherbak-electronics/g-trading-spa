@@ -6,13 +6,19 @@ import {default as PageNotFound} from "@/views/pages/shared/404/Main";
 
 import {default as PageDashboard} from "@/views/pages/private/dashboard/Main";
 import {default as PageProfile} from "@/views/pages/private/profile/Main";
-import {default as PageMarkets} from "@/views/pages/private/markets/Main";
-import {default as PageTrading} from "@/views/pages/private/trading/Main";
-import {default as PageOrders} from "@/views/pages/private/orders/Main";
 
 import {default as PageUsers} from "@/views/pages/private/users/Index";
 import {default as PageUsersCreate} from "@/views/pages/private/users/Create";
 import {default as PageUsersEdit} from "@/views/pages/private/users/Edit";
+
+// Trading Pages
+import {default as PageMarkets} from "@/views/pages/private/trading/Markets";
+import {default as PageOrders} from "@/views/pages/private/trading/Orders";
+import {default as PageDebug} from "@/views/pages/private/trading/Debug";
+import {default as PageHomeworkList} from "@/views/pages/private/trading/HomeworkList";
+import {default as PageHomeworkCreate} from "@/views/pages/private/trading/HomeworkCreate";
+import {default as PageHomeworkEdit} from "@/views/pages/private/trading/HomeworkEdit";
+
 
 import abilities from "@/stub/abilities";
 
@@ -30,13 +36,13 @@ const routes = [
             {
                 name: "dashboard",
                 path: "dashboard",
-                meta: {requiresAuth: true},
+                meta: {requiresAuth: true, title: 'Dash'},
                 component: PageDashboard,
             },
             {
                 name: "profile",
                 path: "profile",
-                meta: {requiresAuth: true, isOwner: true},
+                meta: {requiresAuth: true, isOwner: true, title: 'Prof'},
                 component: PageProfile,
             },
             {
@@ -45,7 +51,7 @@ const routes = [
                     {
                         name: "users.list",
                         path: "list",
-                        meta: {requiresAuth: true, requiresAbility: abilities.LIST_USER},
+                        meta: {requiresAuth: true, requiresAbility: abilities.LIST_USER, title: 'Usr'},
                         component: PageUsers,
                     },
                     {
@@ -67,20 +73,38 @@ const routes = [
     {
         name: "markets",
         path: "/page/markets",
-        meta: {requiresAuth: true},
+        meta: {requiresAuth: true, title: 'Markets'},
         component: PageMarkets,
     },
     {
-        name: "trading",
-        path: "/page/trading",
-        meta: {requiresAuth: true},
-        component: PageTrading,
+        name: "homework",
+        path: "/page/homework",
+        meta: {requiresAuth: true, title: 'Homework', requiresAbility: abilities.LIST_USER},
+        component: PageHomeworkList,
+    },
+    {
+        name: "homework_create",
+        path: "/page/homework/create",
+        meta: {requiresAuth: true, title: 'New Homework', requiresAbility: abilities.LIST_USER},
+        component: PageHomeworkCreate,
+    },
+    {
+        name: "homework_edit",
+        path: "/page/homework/:id/edit",
+        meta: {requiresAuth: true, title: 'Homework Edit', requiresAbility: abilities.EDIT_USER},
+        component: PageHomeworkEdit,
     },
     {
         name: "orders",
         path: "/page/orders",
-        meta: {requiresAuth: true},
+        meta: {requiresAuth: true,  title: 'Orders'},
         component: PageOrders,
+    },
+    {
+        name: "dev",
+        path: "/page/dev",
+        meta: {requiresAuth: true, title: 'Debug'},
+        component: PageDebug,
     },
     {
         path: "/login",

@@ -3,7 +3,7 @@
         <label :for="name" class="text-sm text-gray-500" :class="{ 'sr-only': !showLabel }" v-if="label">
             {{ label }}<span class="text-red-600" v-if="$props.required">*</span>
         </label>
-        <Multiselect track-by="id" label="title" v-model="value" :id="$props.name" :name="$props.name" :disabled="disabled" :placeholder="$props.placeholder" :options="selectOptions" :multiple="$props.multiple" :searchable="!!$props.server" :loading="isLoading" :internal-search="false" :clear-on-select="true" :close-on-select="true" :max-height="400" :show-no-results="false" :hide-selected="true" open-direction="bottom" @search-change="handleSearch">
+        <Multiselect track-by="id" label="title" v-model="value" :id="$props.name" :name="$props.name" :disabled="disabled" :placeholder="$props.placeholder" :options="selectOptions" :multiple="$props.multiple" :searchable="!!$props.server" :loading="isLoading" :internal-search="false" :clear-on-select="false" :close-on-select="true" :max-height="400" :show-no-results="false" :hide-selected="false" open-direction="bottom" @search-change="handleSearch">
         </Multiselect>
     </div>
 </template>
@@ -61,11 +61,11 @@ export default defineComponent({
         },
         serverPerPage: {
             type: Number,
-            default: 5
+            default: 50
         },
         serverSearchMinCharacters: {
             type: Number,
-            default: 3
+            default: 1
         }
     },
     emits: ['update:modelValue', 'input'],

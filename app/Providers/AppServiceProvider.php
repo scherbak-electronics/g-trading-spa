@@ -2,9 +2,10 @@
 
 namespace App\Providers;
 
-use App\Http\Responses\LoginResponse;
 use Illuminate\Support\ServiceProvider;
-use Laravel\Fortify\Contracts\LoginResponse as LoginResponseContract;
+use App\Contracts\TradingLogicInterface;
+use App\Services\Trading\Exchange\ExchangeService;
+use App\Services\Trading\Exchange\Binance\Api as BinanceApi;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -15,7 +16,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register()
     {
-
+        $this->app->bind(TradingLogicInterface::class, function ($app) {
+            return new ExchangeService(new BinanceApi());
+        });
     }
 
     /**

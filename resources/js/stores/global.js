@@ -6,21 +6,25 @@ export const useGlobalStateStore = defineStore({
         return {
             loadingElements: {},
             isUILoading: false,
+            pageHeaderTitle: '',
         }
     },
     actions: {
         setUILoading(isLoading) {
             this.isUILoading = isLoading;
         },
-        isUILoading() {
-            return this.isUILoading;
-        },
+        // isUILoading() {
+        //     return this.isUILoading;
+        // },
         setElementLoading(element, isLoading) {
             if (!element || !element.length) {
                 return;
             }
             this.loadingElements[element] = isLoading;
             this.setUILoading(isLoading);
-        }
+        },
+        setPageHeaderTitle(title) {
+            this.pageHeaderTitle = title;
+        },
     }
 });

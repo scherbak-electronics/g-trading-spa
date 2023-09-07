@@ -1,3 +1,4 @@
+import {trans} from "@/helpers/i18n";
 export function fillObject(object, data) {
     for (let i in object) {
         if (data.hasOwnProperty(i)) {
@@ -5,6 +6,23 @@ export function fillObject(object, data) {
         }
     }
     return object;
+}
+
+export function fillFormAndDropdownValues(form, data, dropdownProperties, noTitleProperties) {
+    for (let property in form) {
+        if (data.hasOwnProperty(property)) {
+            if (dropdownProperties && dropdownProperties.includes(property)) {
+                if (noTitleProperties && noTitleProperties.includes(property)) {
+                    form[property] = {id: data[property], title: data[property]};
+                } else {
+                    form[property] = {id: data[property], title: trans('trading.labels.options.' + property + '.' + data[property])};
+                }
+            } else {
+                form[property] = data[property];
+            }
+        }
+    }
+    return form;
 }
 
 /**
@@ -65,7 +83,7 @@ export const reduceProperties = (data, properties, singleProperty) => {
                     newVal[j] = value[j] && value[j].hasOwnProperty(singleProperty) ? value[j][singleProperty] : newVal;
                 }
             } else if (typeof value === 'object') {
-                newVal = value && value.hasOwnProperty(singleProperty) ? singleProperty[singleProperty] : newVal;
+                newVal = value && value.hasOwnProperty(singleProperty) ? value[singleProperty] : newVal;
             } else {
                 newVal = value;
             }

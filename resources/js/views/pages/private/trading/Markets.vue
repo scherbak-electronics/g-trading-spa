@@ -1,177 +1,274 @@
 <template>
-    <Page>
-        <div class="w-full h-full text-left">
-            <div class="w-full h-fit text-left pt-3">
-                <Button @click="loadData" class="mb-2 mr-2" :label="'Load Data'"/>
-                <Button @click="findLevel" class="mb-2 mr-2" :label="'Find Level'"/>
-                <Button @click="findLevel2" class="mb-2 mr-2" :label="'Find Level short'"/>
-                <Button @click="highlightBars" class="mb-2 mr-2" :label="'Highlight Bars'"/>
-                <Button @click="changeColors" class="mb-2 mr-2" :label="'Set Random Colors'"/>
-                <Button @click="changeType" class="mb-2 mr-2" :label="'Change Chart Type'"/>
-                <Button @click="updColor" class="mb-2 mr-2" :label="'color'"/>
+    <Page :is-loading="pageLoading">
+        <div class="w-full h-full text-left flex flex-col">
+            <div class="grid grid-cols-2 gap-4 mb-2">
+                <div>
+                    <div class="flex market-summary mb-2 p-2">
+                        <div class="flex-grow symbol">
+                            <h4>market</h4>
+                            <h1>{{ stateExchange.symbol }}</h1>
+                        </div>
+                        <div class="flex-grow price">
+                            <h4>price</h4>
+                            <p>{{ stateExchange.lastPrice }}</p>
+                        </div>
+                        <div class="flex-grow change-24h">
+                            <h4>24h change</h4>
+                            <p>{{ stateExchange.priceChange }}</p>
+                        </div>
+                    </div>
+                    <div class="text-left">
+                        <Button @click="onClickLoadData" class="mb-2 mr-2" :label="'Load Data'"/>
+                        <Button @click="onClickFindLevel" class="mb-2 mr-2" :label="'Find Level'"/>
+                        <Button @click="onClickFindLevel2" class="mb-2 mr-2" :label="'Find Level short'"/>
+                        <Button @click="onClickHighlightBars" class="mb-2 mr-2" :label="'Highlight Bars'"/>
+                    </div>
+                </div>
+                <div>
+                    <div class="text-right">
+                        <Button @click="onClickUSDT" class="mb-2 mr-2 " :class="[{ 'sorting-selected': stateExchange.tickersQuoteAssetFilter === 'USDT' }]"  :label="'USDT'"/>
+                        <Button @click="onClickByVolume" class="mb-2 mr-2 " :class="[{ 'sorting-selected': stateExchange.tickersSortBy === 'quote_volume' }]" :label="'by volume'"/>
+                        <Button @click="onClickByChange" class="mb-2 mr-2 " :class="[{ 'sorting-selected': stateExchange.tickersSortBy === 'price_change_percent' }]" :label="'by change'"/>
+                        <Button @click="onClickSortDir" class="mb-2 mr-2 " :label="''"  :icon="stateExchange.tickersSortDir === 'desc' ? 'fa fa-arrow-circle-down' : (stateExchange.tickersSortDir === 'asc' ? 'fa fa-arrow-circle-up' : '')"/>
+                    </div>
+                    <div>
+                        <template v-if="marketsLoading">
+                            <div class="pt-10 pb-6 text-center">
+                                <Spinner/>
+                            </div>
+                        </template>
+                        <TableMarkets v-if="!marketsLoading" :records="stateExchange.tickers" @record-selected="onRecordSelectedChangeMarket"/>
+                    </div>
+                </div>
             </div>
-            <div>{{ textOut }}</div>
-            <div class="chart-container">
-                <LWChart
-                    :type="chartType"
-                    :data="stateMarkets.topChartData"
-                    :autosize="true"
-                    :chart-options="chartOptions"
-                    :series-options="seriesOptions"
-                    :price-scale-options="priceScaleOptions"
-                    :time-scale-options="timeScaleOptions"
-                    ref="lwChart"
-                />
+            <ButtonsTimeframe v-model="stateExchange.interval" @update:modelValue="onTimeframeSelect"/>
+            <div class="chart-container flex-grow" ref="chartContainer">
+                <LWChart v-if="!chartLoading" :data="stateExchange.topChartData" ref="lwChart" :initialHeight="400" :symbol="stateExchange.symbol"/>
+                <template v-if="chartLoading">
+                    <div class="pt-10 pb-6 text-center">
+                        <Spinner/>
+                    </div>
+                </template>
             </div>
         </div>
     </Page>
 </template>
 
 <script setup>
-// This starter template is using Vue 3 <script setup> SFCs
-// Check out https://vuejs.org/api/sfc-script-setup.html#script-setup
-import { ref } from 'vue';
+import {ref, onMounted, onBeforeUnmount, watch} from 'vue';
 import LWChart from "@/views/components/trading/Chart";
-import { trans } from "@/helpers/i18n";
 import Page from "@/views/layouts/Page";
 import Button from "@/views/components/input/Button";
-import { useMarketsStateStore } from "@/stores/trading/markets";
+import TableMarkets from "@/views/components/trading/TableMarkets";
+import Spinner from "@/views/components/icons/Spinner";
+import { useExchangeStateStore } from "@/stores/exchange";
+import ButtonsTimeframe from "@/views/components/trading/ButtonsTimeframe.vue";
+import ExchangeService from "@/services/ExchangeService";
+import localStorageService from "@/services/LocalStorageService";
 
-/*
- * There are example components in both API styles: Options API, and Composition API
- *
- * Select your preferred style from the imports below:
- */
-// import LWChart from './components/composition-api/LWChart.vue';
-//import LWChart from './components/options-api/LWChart.vue';
-// [
-//     1499040000000,      // Kline open time
-//     "0.01634790",       // Open price
-//     "0.80000000",       // High price
-//     "0.01575800",       // Low price
-//     "0.01577100",       // Close price
-//     "148976.11427815",  // Volume
-//     1499644799999,      // Kline Close time
-//     "2434.19055334",    // Quote asset volume
-//     308,                // Number of trades
-//     "1756.87402397",    // Taker buy base asset volume
-//     "28.46694368",      // Taker buy quote asset volume
-//     "0"                 // Unused field, ignore.
-// ]
-// ]
-
-
-const stateMarkets = useMarketsStateStore();
-
-const textOut = ref("---");
-const chartOptions = ref({
-    layout: {
-        background: { color: '#222' },
-        textColor: '#DDD',
-    },
-    grid: {
-        vertLines: { color: '#444' },
-        horzLines: { color: '#444' },
-    },
-});
-const priceScaleOptions = ref({
-    borderColor: '#71649C'
-});
-const timeScaleOptions = ref({
-    borderColor: '#71649C'
-});
-//const data = ref([]);
-const isLevelSelectionMode = ref(false);
-const seriesOptions = ref({
-    color: 'rgb(45, 77, 205)',
-});
-const chartType = ref('bar');
+const stateExchange = useExchangeStateStore();
 const lwChart = ref();
+const chartContainer = ref(null);
+const pageLoading = ref(false);
+const chartLoading = ref(false);
+const marketsLoading = ref(false);
+let lastBarUpdateInterval;
+const lastBarUpdateTime = 10000;
 
-function randomShade() {
-    return Math.round(Math.random() * 255);
-}
+onMounted(() => {
+    const exchangeService = new ExchangeService();
+    const localStorageMarkets = localStorageService.getItem('markets');
+    if (localStorageMarkets?.symbol && localStorageMarkets?.interval) {
+        stateExchange.symbol = localStorageMarkets.symbol;
+        stateExchange.interval = localStorageMarkets.interval;
+    } else {
+        localStorageService.setItem('markets', {
+            symbol: stateExchange.symbol,
+            interval: stateExchange.interval
+        });
+    }
 
-const randomColor = (alpha = 1) => {
-    return `rgba(${randomShade()}, ${randomShade()}, ${randomShade()}, ${alpha})`;
+    pageLoading.value = true;
+    marketsLoading.value = true;
+    chartLoading.value = true;
+    exchangeService.updateExchangeInfo()
+        .then(result => {
+            if (result === 'ok') {
+                exchangeService.getTicker24h(
+                    stateExchange.tickersQuoteAssetFilter,
+                    stateExchange.tickersSortBy,
+                    stateExchange.tickersSortDir
+                )
+                    .then((tickers) => {
+                        stateExchange.tickers = tickers;
+                        marketsLoading.value = false;
+                        exchangeService.getKlineData(stateExchange.symbol, stateExchange.interval)
+                            .then((klineData) => {
+                                stateExchange.topChartData = klineData;
+                                chartLoading.value = false;
+                                exchangeService.getLastPrice(stateExchange.symbol)
+                                    .then(price => {
+                                        stateExchange.lastPrice = price;
+                                        lastBarUpdateInterval = setInterval(() => {
+                                            updateLastBar();
+                                        }, lastBarUpdateTime);
+                                    })
+                                    .finally(() => {
+                                    });
+                            })
+                            .catch(() => {
+                                console.log('loadTradingData error')
+                            })
+                            .finally(() => {
+                                chartLoading.value = false;
+                                pageLoading.value = false;
+                            });
+                    })
+                    .catch(() => {
+                        console.log('getTicker24h error')
+                    })
+                    .finally(() => {
+                        marketsLoading.value = false;
+                    });
+            }
+        });
+
+    lastBarUpdateInterval = setInterval(() => {
+        updateLastBar();
+    }, lastBarUpdateTime);
+});
+
+onBeforeUnmount(() => {
+    clearInterval(lastBarUpdateInterval);
+});
+
+const onRecordSelectedChangeMarket = (record) => {
+    console.log('change market: ', record);
+    stateExchange.symbol = record.symbol;
+    let localStorageMarkets = localStorageService.getItem('markets');
+    localStorageMarkets.symbol = stateExchange.symbol;
+    localStorageService.setItem('markets', localStorageMarkets);
+    reloadKlineData();
 };
 
-const colorsTypeMap = {
-    area: [
-        ['topColor', 0.4],
-        ['bottomColor', 0],
-        ['lineColor', 1],
-    ],
-    bar: [
-        ['upColor', 1],
-        ['downColor', 1],
-    ],
-    baseline: [
-        ['topFillColor1', 0.28],
-        ['topFillColor2', 0.05],
-        ['topLineColor', 1],
-        ['bottomFillColor1', 0.28],
-        ['bottomFillColor2', 0.05],
-        ['bottomLineColor', 1],
-    ],
-    candlestick: [
-        ['upColor', 1],
-        ['downColor', 1],
-        ['borderUpColor', 1],
-        ['borderDownColor', 1],
-        ['wickUpColor', 1],
-        ['wickDownColor', 1],
-    ],
-    histogram: [['color', 1]],
-    line: [['color', 1]],
+const onTimeframeSelect = (value) => {
+    console.log('onTimeframeSelect value ', value);
+    stateExchange.interval = value;
+    let localStorageMarkets = localStorageService.getItem('markets');
+    localStorageMarkets.interval = stateExchange.interval;
+    localStorageService.setItem('markets', localStorageMarkets);
+    reloadKlineData();
 };
 
-// Set a random colour for the series as an example of how
-// to apply new options to series. A similar appraoch will work on the
-// option properties.
-const changeColors = () => {
-    const options = {};
-    const colorsToSet = colorsTypeMap[chartType.value];
-    colorsToSet.forEach(c => {
-        options[c[0]] = randomColor(c[1]);
-    });
-    seriesOptions.value = options;
+const reloadKlineData = () => {
+    chartLoading.value = true;
+    const exchangeService = new ExchangeService();
+    exchangeService.getKlineData(stateExchange.symbol, stateExchange.interval)
+        .then((klineData) => {
+            stateExchange.topChartData = klineData;
+            chartLoading.value = false;
+        })
+        .catch(() => {
+            console.log('loadTradingData error')
+        })
+        .finally(() => {
+            chartLoading.value = false;
+        });
 };
 
-const loadData = () => {
-    stateMarkets.loadTradingData();
+const onClickLoadData = () => {
+
 };
 
-const changeType = () => {
-    loadData();
-
-    // call a method on the component.
-    lwChart.value.fitContent();
-};
-
-const findLevel = () => {
+const onClickFindLevel = () => {
     lwChart.value.createNewLevel('breakout', 'long');
 };
 
-const findLevel2 = () => {
+const onClickFindLevel2 = () => {
     lwChart.value.createNewLevel('breakout', 'short');
 };
 
-const highlightBars = () => {
-    const lastLevelPrice = lwChart.value.getLastLevelPrice();
-    if (lastLevelPrice) {
-        lwChart.value.highlightLevelBars(lastLevelPrice, '', 0.1);
+const onClickHighlightBars = () => {
+    updateLastBar();
+};
+
+const onClickUSDT = () => {
+    if (stateExchange.tickersQuoteAssetFilter === 'USDT') {
+        stateExchange.tickersQuoteAssetFilter = '';
+    } else {
+        stateExchange.tickersQuoteAssetFilter = 'USDT';
     }
+    reloadTickers();
+};
+const onClickByVolume = () => {
+    stateExchange.setSortByVolume();
+    reloadTickers();
 };
 
-const updColor = () => {
-    lwChart.value.updateBarColor('#ffffff');
+const onClickByChange = () => {
+    stateExchange.setSortByChange();
+    reloadTickers();
 };
 
-loadData();
+const onClickSortDir = () => {};
+
+const reloadTickers = () => {
+    const exchangeService = new ExchangeService();
+    marketsLoading.value = true;
+    exchangeService.getTicker24h(
+        stateExchange.tickersQuoteAssetFilter,
+        stateExchange.tickersSortBy,
+        stateExchange.tickersSortDir
+    )
+        .then((tickers) => {
+            stateExchange.tickers = tickers;
+            marketsLoading.value = false;
+        });
+};
+
+const updateLastBar = () => {
+    const exchangeService = new ExchangeService();
+    exchangeService.updateLastBar(stateExchange.symbol, stateExchange.interval)
+        .then(lastBar => {
+            if (lwChart?.value) {
+                lwChart.value.updateLastBar(lastBar);
+            }
+            stateExchange.lastPrice = lastBar.close;
+        })
+        .finally(() => {});
+};
+
+watch(stateExchange.interval, (value) => {
+    console.log('in watch stateExchange.interval', value);
+});
+
 </script>
 <style scoped>
 .chart-container {
-    height: calc(100% - 6.0em);
+    box-sizing: content-box;
+}
+.market-summary {
+    background-color: #1f1f1fe8;
+    border-radius: 10px;
+}
+.market-summary h4 {
+    font-size: x-small;
+    color: #41b883;
+}
+.market-summary h1 {
+    font-size: xxx-large;
+    color: #41b883;
+}
+.market-summary .price p {
+    font-size: x-large;
+    color: #41b883;
+}
+.change-24h p {
+    font-size: x-large;
+    color: #41b883;
+}
+
+.sorting-selected {
+    background-color: #3b82f6 !important;
 }
 </style>

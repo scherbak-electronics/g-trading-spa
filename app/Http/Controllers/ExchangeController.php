@@ -2,34 +2,28 @@
 
 namespace App\Http\Controllers;
 
-use App\Contracts\ExchangeInterface;
+use App\Contracts\Exchange\ServiceInterface as ExchangeServiceInterface;
 use App\Contracts\TradingLogicInterface;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 
 class ExchangeController extends Controller
 {
-    protected ExchangeInterface $exchangeApi;
-
-    public function __construct(ExchangeInterface $exchangeApi)
-    {
-        $this->exchangeApi = $exchangeApi;
-    }
+    public function __construct(protected readonly ExchangeServiceInterface $exchangeService)
+    {}
 
     public function kline(Request $request): JsonResponse
     {
         $symbol = $request->query('symbol');
         $interval = $request->query('interval');
-        $startTime = $request->query('start_time');
-        $endTime = $request->query('end_time');
-        $klineData = $this->exchangeApi->getKlineData($symbol, $interval, $startTime, $endTime);
-        // Process your logic here and return the data as JSON
+        $klineData = $this->exchangeService->getKlineData($symbol, $interval);
+
         $data = [
-            'message' => 'Hello from ExchangeController',
             'timestamp' => now(),
             'kline_data' => $klineData
-            // Add more data as needed
+
         ];
         return response()->json($data);
     }
@@ -37,30 +31,25 @@ class ExchangeController extends Controller
     public function info(Request $request): JsonResponse
     {
         $symbol = $request->query('symbol');
-        $permissions = $request->query('permissions');
-
-        $info = $this->exchangeApi->getExchangeInfo($symbol, $permissions);
-        // Process your logic here and return the data as JSON
+        $info = $this->exchangeService->getExchangeInfo($symbol);
         $data = [
-            'message' => 'Hello from ExchangeController',
             'timestamp' => now(),
             'exchange_info' => $info
-            // Add more data as needed
         ];
         return response()->json($data);
     }
 
-    public function symbols(Request $request)
+    public function symbols(Request $request): AnonymousResourceCollection
     {
-        return $this->exchangeApi->getSymbols($request->all());
+        return $this->exchangeService->getSymbols($request->all());
     }
 
-    public function timeframes(Request $request)
+    public function timeframes(Request $request): array
     {
-        return $this->exchangeApi->getTimeframes();
+        return $this->exchangeService->getTimeframes();
     }
 
-    public function strategies(Request $request)
+    public function strategies(Request $request): array
     {
         return TradingLogicInterface::STRATEGIES;
     }
@@ -68,13 +57,104 @@ class ExchangeController extends Controller
     public function symbolInfo(Request $request): JsonResponse
     {
         $symbol = $request->query('symbol');
-        $info = $this->exchangeApi->getSymbolInfo($symbol);
-        // Process your logic here and return the data as JSON
+        $info = $this->exchangeService->getSymbolInfo($symbol);
         $data = [
-            'message' => 'Hello from ExchangeController',
             'timestamp' => now(),
             'symbol_info' => $info
-            // Add more data as needed
+        ];
+        return response()->json($data);
+    }
+
+    public function ticker24h(Request $request): JsonResponse
+    {
+        $quoteAsset = '';
+        if ($request->query('quoteAsset')) {
+            $quoteAsset = $request->query('quoteAsset', '');
+        }
+        $sortBy = '';
+        if ($request->query('sortBy')) {
+            $sortBy = $request->query('sortBy', 'quote_volume');
+        }
+        $sortDir = '';
+        if ($request->query('sortDir')) {
+            $sortDir = $request->query('sortDir', 'desc');
+        }
+        $ticker24h = $this->exchangeService->getTicker24h($quoteAsset, $sortBy, $sortDir);
+        $data = [
+            'timestamp' => now(),
+            'ticker24h' => $ticker24h
+        ];
+        return response()->json($data);
+    }
+
+    public function priceTicker(Request $request): JsonResponse
+    {
+        $symbol = $request->query('symbol');
+        $ticker = $this->exchangeService->getPriceTicker($symbol);
+        $data = [
+            'timestamp' => now(),
+            'ticker' => $ticker
+        ];
+        return response()->json($data);
+    }
+
+    public function updateLastBar(Request $request): JsonResponse
+    {
+        $symbol = $request->query('symbol');
+        $interval = $request->query('interval');
+        $lastBar = $this->exchangeService->updateAndGetLastBar($symbol, $interval);
+
+        $data = [
+            'timestamp' => now(),
+            'last_bar' => $lastBar
+
+        ];
+        return response()->json($data);
+    }
+
+    public function updateExchangeInfo(Request $request): JsonResponse
+    {
+        $this->exchangeService->updateExchangeInfo();
+        $data = [
+            'timestamp' => now(),
+            'result' => 'ok'
+        ];
+        return response()->json($data);
+    }
+
+    public function getSymbolMinPrice(Request $request): JsonResponse
+    {
+        $symbol = $request->query('symbol');
+        $minPrice = $this->exchangeService->getSymbolMinPrice($symbol);
+        $data = [
+            'timestamp' => now(),
+            'min_price' => $minPrice
+        ];
+        return response()->json($data);
+    }
+
+    public function getOpenOrders(Request $request): JsonResponse
+    {
+        $symbol = $request->query('symbol');
+        $orders = $this->exchangeService->getOpenOrders($symbol);
+        $data = [
+            'timestamp' => now(),
+            'open_orders' => $orders
+        ];
+        return response()->json($data);
+    }
+
+    public function getAllOrders(Request $request): JsonResponse
+    {
+        $symbol = $request->query('symbol');
+        $orderId = $request->query('orderId');
+        $startTime = $request->query('startTime');
+        $endTime = $request->query('endTime');
+        $limit = $request->query('limit');
+        $orders = $this->exchangeService->getAllOrders($symbol, $orderId, $startTime, $endTime, $limit);
+        $data = [
+            'timestamp' => now(),
+            'all_orders' => $orders
         ];
         return response()->json($data);
     }

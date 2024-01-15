@@ -21,7 +21,7 @@
                 mk: {!! json_encode(\Illuminate\Support\Facades\Lang::get('frontend', [], 'mk')) !!},
             },
             trading: {
-                timeframes: {!! json_encode(\App\Contracts\ExchangeInterface::TIMEFRAMES) !!},
+                timeframes: {!! json_encode(array_keys(\App\Contracts\ExchangeInterface::TIMEFRAMES)) !!},
                 strategies: {!! json_encode(\App\Contracts\TradingLogicInterface::STRATEGIES) !!}
             }
         }

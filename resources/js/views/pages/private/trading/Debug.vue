@@ -7,7 +7,8 @@
                 <Button @click="getExchangeInfo" class="ml-4" :label="'Get Exchange Info'"/>
                 <Button @click="getAllSymbols" class="ml-4" :label="'Get All Symbols'"/>
             </div>
-            <div>{{ resp }}</div>
+            <div><pre>{{ Date.now() }}</pre></div>
+            <div><pre>{{ resp }}</pre></div>
         </div>
     </Page>
 </template>
@@ -65,47 +66,10 @@ export default defineComponent({
     },
     setup(props, {emit}) {
         const resp = ref("");
-        function getKlineData() {
-            const nowTimestamp = Date.now();
-            // Timestamp for 90 days ago
-            const daysToMilliseconds = 90 * 24 * 60 * 60 * 1000; // 90 days in milliseconds
-            const pastTimestamp = nowTimestamp - daysToMilliseconds;
-            // Make the request to Laravel controller
-            exchangeService.getKlineData('BTCBUSD', '1d', pastTimestamp, nowTimestamp)
-                .then(response => {
-                    resp.value = JSON.stringify(response.data, null, 2); // Format JSON response
-                })
-                .catch(error => {
-                    console.error(error);
-                });
-        }
-
-        function getExchangeInfo() {
-            exchangeService.getExchangeInfo(undefined, undefined).then(response => {
-                    resp.value = JSON.stringify(response.data, null, 2); // Format JSON response
-                })
-                .catch(error => {
-                    console.error(error);
-                    resp.value = error;
-                });
-        }
-
-        function getAllSymbols() {
-            exchangeService.getAllSymbols('BUSD', undefined).then(response => {
-                resp.value = JSON.stringify(response.data, null, 2); // Format JSON response
-            })
-                .catch(error => {
-                    console.error(error);
-                    resp.value = error;
-                });
-        }
 
         return {
             resp,
             trans,
-            getKlineData,
-            getExchangeInfo,
-            getAllSymbols
         }
     }
 });

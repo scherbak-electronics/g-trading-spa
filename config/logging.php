@@ -117,6 +117,12 @@ return [
         'emergency' => [
             'path' => storage_path('logs/laravel.log'),
         ],
+
+        'trading' => [
+            'driver' => 'single',
+            'path' => storage_path('logs/trading.log'),
+            'level' => 'debug',
+        ],
     ],
 
 ];

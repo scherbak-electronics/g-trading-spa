@@ -6,9 +6,12 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    public function up()
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
     {
-        Schema::create('klines', function (Blueprint $table) {
+        Schema::create('exchange_klines', function (Blueprint $table) {
             $table->id();
             $table->string('symbol', 32);
             $table->string('interval', 3);                       //1s 1m 3m 5m 15m 30m 1h 2h 4h 6h 8h 12h 1d 3d 1w 1M
@@ -27,8 +30,11 @@ return new class extends Migration
         });
     }
 
+    /**
+     * Reverse the migrations.
+     */
     public function down(): void
     {
-        Schema::dropIfExists('klines');
+        Schema::dropIfExists('exchange_klines');
     }
 };

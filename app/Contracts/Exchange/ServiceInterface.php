@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Contracts;
+namespace App\Contracts\Exchange;
 
-interface ExchangeInterface
+interface ServiceInterface
 {
     const TIMEFRAMES = [
         '1s' => 1000,
@@ -22,10 +22,11 @@ interface ExchangeInterface
         '1w' => 604800000,
         '1M' => 2592000000
     ];
-    public function getKlineData(string $symbol, string $interval, int $startTime, int $endTime, int $limit): array;
+    public function getKlineData(string $symbol, string $interval): array;
     public function getServerTime(): array;
-    public function getExchangeInfo(string $symbol, string $permissions): array;
-    public function getAllSymbols(string $quoteAsset, string $permissions): array;
+    public function getAllSymbols(string $quoteAsset): array;
     public function getSymbolInfo(string $symbol): array;
-    public function getTicker24h(string $symbol, array $symbols, string $type): array;
+    public function getTicker24h(string $quoteAsset, string $sortByField, string $sortDir): array;
+    public function getPriceTicker(string $symbol, array $symbols): array;
+    public function updateAndGetLastBar(string $symbol, string $interval): array;
 }

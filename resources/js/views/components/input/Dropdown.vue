@@ -3,7 +3,7 @@
         <label :for="name" class="text-sm text-gray-500" :class="{ 'sr-only': !showLabel }" v-if="label">
             {{ label }}<span class="text-red-600" v-if="$props.required">*</span>
         </label>
-        <Multiselect track-by="id" label="title" v-model="value" :id="$props.name" :name="$props.name" :disabled="disabled" :placeholder="$props.placeholder" :options="selectOptions" :multiple="$props.multiple" :searchable="!!$props.server" :loading="isLoading" :internal-search="false" :clear-on-select="false" :close-on-select="true" :max-height="400" :show-no-results="false" :hide-selected="false" open-direction="bottom" @search-change="handleSearch">
+        <Multiselect track-by="id" label="title" v-model="value" :id="$props.name" :name="$props.name" :disabled="disabled" :placeholder="$props.placeholder" :options="selectOptions" :multiple="$props.multiple" :searchable="!!$props.server" :loading="isLoading" :internal-search="false" :clear-on-select="false" :close-on-select="true" :max-height="400" :show-no-results="false" :hide-selected="false" open-direction="bottom" @change="onChange" @select="onSelect" @search-change="handleSearch">
         </Multiselect>
     </div>
 </template>
@@ -95,7 +95,6 @@ export default defineComponent({
                 emit('input', value);
             },
         })
-
         function handleSearch(search) {
             if (!props.server) {
                 return;
@@ -116,12 +115,19 @@ export default defineComponent({
             })
         }
 
-
+        function onChange(value) {
+            console.log('change', value);
+        }
+        function onSelect(value) {
+            console.log('select', value);
+        }
         return {
             value,
             selectOptions,
             handleSearch,
             isLoading,
+            onChange,
+            onSelect
         }
     }
 });

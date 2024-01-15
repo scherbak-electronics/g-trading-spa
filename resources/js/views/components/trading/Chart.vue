@@ -1,46 +1,47 @@
 <script>
 import { createChart } from 'lightweight-charts';
 import * as LightweightCharts from "lightweight-charts";
-import { useLevelsState } from "@/stores/trading/levels";
-import { ChartCustomLogic } from "@/model/ChartCustomLogic";
+import stylesConfig from "@/stub/trading/styles";
+import ExchangeService from "@/services/ExchangeService";
 
-// Lightweight Chart instances are stored as normal JS variables
-// If you need to use a ref then it is recommended that you use `shallowRef` instead
+
+const tradingStylesConfig = stylesConfig();
+
 let logic;
 let state;
 let series;
 let chart;
+let firstLeftBarTime;
+let markers = [];
+let highlightMarkers = [];
+let isCursorActive = false;
+let timeUnderCursor = 0;
+let levelTradingStyleName = '';
+let levelSide = '';
+let levels = [];
+let cursorPriceLine = undefined;
+let stateMarkets = undefined;
+let stateLevels = undefined;
 
-
-// Function to get the correct series constructor name for current series type.
-function getChartSeriesConstructorName(type) {
-    return `add${type.charAt(0).toUpperCase() + type.slice(1)}Series`;
-}
-
-// Creates the chart series and sets the data.
-const addSeriesAndData = (type, seriesOptions, data) => {
-    const seriesConstructor = getChartSeriesConstructorName(type);
-    series = chart[seriesConstructor](seriesOptions);
-    series.setData(data);
-    series.applyOptions({
-        //lastValueVisible: false,
-        priceLineVisible: false,
-    });
-};
-
-// Auto resizes the chart when the browser window is resized.
 const resizeHandler = container => {
-    if (!chart || !container) return;
-    const dimensions = container.getBoundingClientRect();
+    if (!chart || !container) {
+        return;
+    }
+    let dimensions = container.getBoundingClientRect();
+    //console.log(dimensions.width, dimensions.height);
+    //console.log(chart.options().width, chart.options().height);
     chart.resize(dimensions.width, dimensions.height);
+    //console.log('after resize');
+    dimensions = container.getBoundingClientRect();
+    //console.log(dimensions.width, dimensions.height);
 };
-
-
 
 function saveLevel(ohlcData) {
-    logic.isCursorActive = false;
+    isCursorActive = false;
     saveLevelPriceLine(ohlcData);
-    updateMarkers(logic.timeUnderCursor);
+    updateMarkers(timeUnderCursor, (newMarkers) => {
+        series.setMarkers(newMarkers);
+    });
     chart.applyOptions({
         crosshair: {
             horzLine: {
@@ -51,37 +52,105 @@ function saveLevel(ohlcData) {
     });
 }
 
-function updateMarkers(time) {
-    logic.updateMarkers(time, (newMarkers) => {
-        series.setMarkers(newMarkers);
-    });
-}
-
 function updateLevelPriceLine(ohlcData) {
-    if (logic.cursorPriceLine) {
-        series.removePriceLine(logic.cursorPriceLine);
-        logic.cursorPriceLine = undefined;
+    if (cursorPriceLine) {
+        series.removePriceLine(cursorPriceLine);
+        cursorPriceLine = undefined;
     }
-    logic.cursorPriceLine = series.createPriceLine(
-        logic.getPriceLineOptions(ohlcData)
+    cursorPriceLine = series.createPriceLine(
+        getPriceLineOptions(ohlcData)
     );
 }
 
-const saveLevelPriceLine = (ohlcData) => {
-    if (logic.cursorPriceLine) {
-        series.removePriceLine(logic.cursorPriceLine);
-        logic.cursorPriceLine = undefined;
+function getPriceLineOptions(ohlcData) {
+    return {
+        price: ohlcData[tradingStylesConfig[levelTradingStyleName][levelSide].levelPriceLineOptions.pricePropertyName],
+        color: '#3179F5',
+        lineWidth: 1,
+        lineStyle: 2, // LineStyle.Dashed
+        axisLabelVisible: true,
+        title: levelTradingStyleName + ' - ' + levelSide
+    };
+}
+
+function getLevelMarker(time) {
+    return {
+        time: time,
+        ...tradingStylesConfig[levelTradingStyleName][levelSide].levelMarker
+    };
+}
+
+function getCursorMarker(time) {
+    return {
+        time: time,
+        ...tradingStylesConfig[levelTradingStyleName][levelSide].cursorMarker
+    };
+}
+
+function highlightLevelBars(price, side, accuracy) {
+    highlightMarkers = [];
+    stateMarkets.topChartData.forEach(item => {
+        let maxDiff = 100;
+        let itemPriceDiff = Math.abs(price - item.high);
+        if (itemPriceDiff < maxDiff) {
+            highlightMarkers.push({
+                time: item.time,
+                ...tradingStylesConfig[levelTradingStyleName][levelSide].levelMarker
+            });
+        }
+    });
+}
+
+function updateMarkers(time, callback) {
+    if (!markers) {
+        markers = [];
+        if (isCursorActive) {
+            markers.push(getCursorMarker(time));
+        }
+        markers.push(...getAllLevelsMarkers());
+        markers.push(...highlightMarkers);
+        callback(markers);
     }
-    let priceLineData = logic.getPriceLineOptions(ohlcData);
-    state.addLevel({
+    if (markers) {
+        markers = undefined;
+    }
+}
+
+function addLevel(level) {
+    levels.push(level);
+}
+
+function getAllLevelsMarkers() {
+    let res = [];
+    levels.forEach(level => {
+        res.push(...level.markers);
+    });
+    return res;
+}
+
+function getLastAddedLevelPrice() {
+    if (levels.length) {
+        return levels[levels.length - 1].price;
+    }
+}
+
+const saveLevelPriceLine = (ohlcData) => {
+    if (cursorPriceLine) {
+        series.removePriceLine(cursorPriceLine);
+        cursorPriceLine = undefined;
+    }
+    let priceLineData = getPriceLineOptions(ohlcData);
+    addLevel({
         price: priceLineData.price,
         priceLine: series.createPriceLine(priceLineData),
-        markers: [logic.getLevelMarker(ohlcData.time)]
+        markers: [getLevelMarker(ohlcData.time)]
     });
 }
 
 const createNewLevel = (tradingStyle, side) => {
-    logic.createNewLevel(tradingStyle, side);
+    isCursorActive = true;
+    levelTradingStyleName = tradingStyle;
+    levelSide = side;
     chart.applyOptions({
         crosshair: {
             horzLine: {
@@ -93,24 +162,23 @@ const createNewLevel = (tradingStyle, side) => {
 };
 
 const crosshairMoveHandler = param => {
-    if (logic.isCursorActive) {
+    if (isCursorActive) {
         if (!param.point && !param.seriesData) {
             return;
         }
         if (param.time) {
             const data = param.seriesData.get(series);
-            if (logic.timeUnderCursor !== data.time) {
-                logic.timeUnderCursor = data.time;
-                updateMarkers(logic.timeUnderCursor);
+            if (timeUnderCursor !== data.time) {
+                timeUnderCursor = data.time;
+                updateMarkers(timeUnderCursor);
                 updateLevelPriceLine(data);
             }
         }
     }
 };
 
-
 const chartClickHandler = param => {
-    if (logic.isCursorActive) {
+    if (isCursorActive) {
         if (!param.point) {
             return;
         }
@@ -120,79 +188,98 @@ const chartClickHandler = param => {
     }
 }
 
+const visibleTimeRangeChangeHandler = (range) => {
+    if (range) {
+        if (state) {
+            if (firstLeftBarTime === range.from) {
+                console.log('load from:', range.from);
+            }
+        }
+    }
+}
+
 export default {
     props: {
-        type: {
-            type: String,
-            default: 'line',
-        },
         data: {
             type: Array,
             required: true,
         },
-        autosize: {
-            default: true,
-            type: Boolean,
+        initialHeight: {
+            type: Number,
+            required: true
         },
-        chartOptions: {
-            type: Object,
-        },
-        seriesOptions: {
-            type: Object,
-        },
-        timeScaleOptions: {
-            type: Object,
-        },
-        priceScaleOptions: {
-            type: Object,
-        },
+        symbol: {
+            type: String,
+            required: true
+        }
     },
     mounted() {
-        state = useLevelsState();
-        logic = new ChartCustomLogic();
-        // Create the Lightweight Charts Instance using the container ref.
-        chart = createChart(this.$refs.chartContainer, this.chartOptions);
-        addSeriesAndData(this.type, this.seriesOptions, this.data);
-
-        if (this.priceScaleOptions) {
-            chart.priceScale().applyOptions(this.priceScaleOptions);
-        }
-
-        if (this.timeScaleOptions) {
-            chart.timeScale().applyOptions(this.timeScaleOptions);
-        }
-
-        chart.applyOptions({
+        const exchangeService = new ExchangeService();
+        const dimensions = this.$refs.chartContainer.getBoundingClientRect();
+        console.log(dimensions.width, this.initialHeight);
+        chart = createChart(this.$refs.chartContainer, {
+            width: dimensions.width,
+            height: this.initialHeight,
+            layout: {
+                background: { color: '#222' },
+                textColor: '#DDD',
+            },
+            grid: {
+                vertLines: { color: '#444' },
+                horzLines: { color: '#444' },
+            },
             crosshair: {
-                // Change mode from default 'magnet' to 'normal'.
-                // Allows the crosshair to move freely without snapping to datapoints
                 mode: LightweightCharts.CrosshairMode.Magnet,
-
-                // Vertical crosshair line (showing Date in Label)
                 vertLine: {
                     width: 1,
                     color: '#C3BCDB44',
                     style: LightweightCharts.LineStyle.Solid,
                     labelBackgroundColor: '#9B7DFF',
                 },
-
-                // Horizontal crosshair line (showing Price in Label)
                 horzLine: {
                     width: 1,
                     color: '#C3BCDB44',
                     style: LightweightCharts.LineStyle.Solid
                 },
             },
+            rightPriceScale: {
+                borderColor: '#71649C'
+            },
+            timeScale: {
+                borderColor: '#71649C'
+            },
+            autoSize: false
         });
-        chart.timeScale().fitContent();
-        chart.subscribeCrosshairMove( crosshairMoveHandler );
-        chart.subscribeClick( chartClickHandler );
-
-        if (this.autosize) {
-            window.addEventListener('resize', () =>
-                resizeHandler(this.$refs.chartContainer)
-            );
+        if (!chart) {
+            return;
         }
+        exchangeService.getSymbolMinPrice(this.symbol)
+            .then(minPriceValue => {
+                if (!chart) {
+                    console.log('chart is null by somereason');
+                    return;
+                }
+                series = chart.addBarSeries({
+                    //lastValueVisible: false,
+                    priceLineVisible: false,
+                    color: 'rgb(45, 77, 205)',
+                    priceFormat: {
+                        type: 'price',
+                        minMove: minPriceValue, // updated minMove
+                    }
+                });
+                if (this.data[0]) {
+                    series.setData(this.data);
+                    firstLeftBarTime = this.data[0].time;
+                }
+                chart.timeScale().subscribeVisibleTimeRangeChange( visibleTimeRangeChangeHandler );
+                chart.timeScale().fitContent();
+                chart.subscribeCrosshairMove( crosshairMoveHandler );
+                chart.subscribeClick( chartClickHandler );
+                window.addEventListener('resize', () =>
+                    resizeHandler(this.$refs.chartContainer)
+                );
+            });
     },
     unmounted() {
         if (chart) {
@@ -204,78 +291,41 @@ export default {
         }
         window.removeEventListener('resize', resizeHandler);
     },
-    /*
-     * Watch for changes to any of the component properties.
-     *
-     * If an options property is changed then we will apply those options
-     * on top of any existing options previously set (since we are using the
-     * `applyOptions` method).
-     *
-     * If there is a change to the chart type, then the existing series is removed
-     * and the new series is created, and assigned the data.
-     *
-     */
     watch: {
-        autosize(enabled) {
-            if (!enabled) {
-                window.removeEventListener('resize', () =>
-                    resizeHandler(this.$refs.chartContainer)
-                );
+        data(newData) {
+            if (!series) {
                 return;
             }
-            window.addEventListener('resize', () =>
-                resizeHandler(this.$refs.chartContainer)
-            );
-        },
-        type(newType) {
-            if (series && chart) {
-                chart.removeSeries(series);
-            }
-            addSeriesAndData(this.type, this.seriesOptions, this.data);
-        },
-        data(newData) {
-            if (!series) return;
             series.setData(newData);
+            firstLeftBarTime = newData[0].time;
+            console.log('first bar time:', firstLeftBarTime);
         },
-        chartOptions(newOptions) {
-            if (!chart) return;
-            chart.applyOptions(newOptions);
-        },
-        seriesOptions(newOptions) {
-            if (!series) return;
-            series.applyOptions(newOptions);
-        },
-        priceScaleOptions(newOptions) {
-            if (!chart) return;
-            chart.priceScale().applyOptions(newOptions);
-        },
-        timeScaleOptions(newOptions) {
-            if (!chart) return;
-            chart.timeScale().applyOptions(newOptions);
+        initialHeight(newData) {
+            console.log(newData);
         },
     },
     methods: {
         highlightLevelBars(price, side, accuracy) {
-            logic.highlightLevelBars(price, side, accuracy);
-            logic.updateMarkers(logic.timeUnderCursor, (newMarkers) => {
+            highlightLevelBars(price, side, accuracy);
+            updateMarkers(logic.timeUnderCursor, (newMarkers) => {
                 series.setMarkers(newMarkers);
             });
         },
-        updateBarColor(barColor) {
-            series.update({
-                time: logic.timeUnderCursor,
-                color: barColor
-            });
-        },
         fitContent() {
-            if (!chart) return;
+            if (!chart) {
+                return;
+            }
             chart.timeScale().fitContent();
         },
-        getChart() {
-            return chart;
-        },
-        getSeries() {
-            return series;
+        updateLastBar(lastBar) {
+            //console.log('last bar: ', lastBar);
+            series.update({
+                time: lastBar.open_time / 1000,
+                open: lastBar.open,
+                high: lastBar.high,
+                low: lastBar.low,
+                close: lastBar.close,
+            });
         },
         createNewLevel(tradingStyle, side) {
             createNewLevel(tradingStyle, side);
@@ -284,10 +334,13 @@ export default {
             saveLevel();
         },
         getLastLevelPrice() {
-            return state.getLastAddedLevelPrice();
+            return getLastAddedLevelPrice();
+        },
+        getBoundingClientRect() {
+            return this.$refs.chartContainer.getBoundingClientRect();
         }
     },
-    expose: ['fitContent', 'getChart', 'getSeries', 'createNewLevel', 'saveLevel', 'highlightLevelBars', 'getLastLevelPrice', 'updateBarColor'],
+    expose: ['fitContent', 'createNewLevel', 'saveLevel', 'highlightLevelBars', 'getLastLevelPrice', 'getBoundingClientRect', 'setInitialHeight', 'updateLastBar'],
 };
 </script>
 
@@ -297,6 +350,7 @@ export default {
 
 <style scoped>
 .lw-chart {
-    height: 100%;
+    height: fit-content;
+    box-sizing: content-box;
 }
 </style>

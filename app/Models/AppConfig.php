@@ -1,12 +1,13 @@
 <?php
 
-namespace App\Models\Trading;
+namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class Kline extends Model
+class AppConfig extends Model
 {
     use HasFactory;
+    protected $table = 'app_configs';
     public $timestamps = false;
 }

@@ -25,6 +25,29 @@ export function fillFormAndDropdownValues(form, data, dropdownProperties, noTitl
     return form;
 }
 
+export function getTimeframeOptions() {
+    let val = [];
+    window.AppConfig.trading.timeframes.forEach((item) => {
+        val.push({id: item, title: trans('trading.labels.options.timeframe.' + item)});
+    });
+    return val;
+}
+
+export function getStrategyOptions() {
+    let val = [];
+    window.AppConfig.trading.strategies.forEach((item) => {
+        val.push({id: item, title: trans('trading.labels.options.strategy.' + item)});
+    });
+    return val;
+}
+
+export function getDirectionOptions() {
+    let val = [];
+    val.push({id: 'long', title: trans('trading.labels.options.direction.long')});
+    val.push({id: 'short', title: trans('trading.labels.options.direction.short')});
+    return val;
+}
+
 /**
  * Flatten a multidimensional object
  *

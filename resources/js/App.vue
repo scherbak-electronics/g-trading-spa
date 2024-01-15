@@ -87,7 +87,7 @@
             </header>
 
             <div class="w-full h-screen overflow-x-hidden border-t flex flex-col">
-                <main class="w-full flex-grow p-6">
+                <main class="w-full flex-grow px-2 py-1">
                     <router-view/>
                 </main>
                 <footer class="w-full bg-white text-center text-sm p-4" v-html="trans('global.phrases.copyright')"></footer>

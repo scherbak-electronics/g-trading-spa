@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Contracts;
+namespace App\Contracts\Exchange;
 
-interface ExchangeInterface
+interface ApiInterface
 {
     const TIMEFRAMES = [
         '1s' => 1000,
@@ -28,4 +28,5 @@ interface ExchangeInterface
     public function getAllSymbols(string $quoteAsset, string $permissions): array;
     public function getSymbolInfo(string $symbol): array;
     public function getTicker24h(string $symbol, array $symbols, string $type): array;
+    public function getOpenOrders(string $symbol): array;
 }

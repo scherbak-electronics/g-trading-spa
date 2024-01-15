@@ -3,10 +3,10 @@
         <div class="w-full sm:w-80 ml-auto mr-auto">
         <Panel>
             <Form id="create-homework" @submit.prevent="onSubmit">
-                <Dropdown class="mb-4" name="symbol" v-model="form.symbol" :label="trans('trading.labels.symbol')" :options="service.symbolOptions" :required="true"/>
-                <Dropdown class="mb-4" name="timeframe" v-model="form.timeframe" :label="trans('trading.labels.timeframe')" :options="service.timeframeOptions" :required="true" />
-                <Dropdown class="mb-4" name="strategy" v-model="form.strategy" :label="trans('trading.labels.strategy')" :options="service.strategyOptions" :required="true" />
-                <Dropdown class="mb-4" name="direction" v-model="form.direction" :label="trans('trading.labels.direction')" :options="service.directionOptions" :required="true"/>
+                <DropdownDefault name="symbol" v-model="form.symbol" :label="trans('trading.labels.symbol')" :server="'trading/exchange/symbols'" :required="true"/>
+                <DropdownDefault name="timeframe" v-model="form.timeframe" :label="trans('trading.labels.timeframe')" :options="getTimeframeOptions()" :required="true" />
+                <DropdownDefault name="strategy" v-model="form.strategy" :label="trans('trading.labels.strategy')" :options="getStrategyOptions()" :required="true" />
+                <DropdownDefault name="direction" v-model="form.direction" :label="trans('trading.labels.direction')" :options="getDirectionOptions()" :required="true"/>
                 <TextInput class="mb-4" name="title" v-model="form.title" :label="trans('global.labels.title')" type="text" :required="false"/>
                 <TextInput class="mb-4" name="description" v-model="form.description" :label="trans('global.labels.description')" type="text" :required="false"/>
             </Form>
@@ -20,18 +20,18 @@ import {defineComponent, reactive} from "vue";
 import {trans} from "@/helpers/i18n";
 import Button from "@/views/components/input/Button";
 import TextInput from "@/views/components/input/TextInput";
-import Dropdown from "@/views/components/input/Dropdown";
+import DropdownDefault from "@/views/components/trading/DropdownDefault";
 import Alert from "@/views/components/Alert";
 import Panel from "@/views/components/Panel";
 import Page from "@/views/layouts/Page";
-import {clearObject, reduceProperties} from "@/helpers/data";
+import {clearObject, getTimeframeOptions, getDirectionOptions, getStrategyOptions} from "@/helpers/data"
 import Form from "@/views/components/Form";
 import HomeworkService from "@/services/HomeworkService";
+import router from "@/router";
 
 export default defineComponent({
-    components: {Form, Panel, Alert, Dropdown, TextInput, Button, Page},
+    components: {Form, Panel, Alert, DropdownDefault, TextInput, Button, Page},
     setup() {
-
         const form = reactive({
             symbol: '',
             timeframe: '',
@@ -40,6 +40,7 @@ export default defineComponent({
             title: '',
             description: '',
         });
+
         const service = new HomeworkService();
 
         const page = reactive({
@@ -74,8 +75,6 @@ export default defineComponent({
             ]
         });
 
-
-
         function onAction(data) {
             switch(data.action.id) {
                 case 'submit':
@@ -85,9 +84,9 @@ export default defineComponent({
         }
 
         function onSubmit() {
-            let propsToReduce = ['symbol', 'timeframe', 'strategy', 'direction'];
-            service.handleCreate('create-homework', reduceProperties(form, propsToReduce, 'id')).then(() => {
-                clearObject(form)
+            service.handleCreate('create-homework', form).then(() => {
+                clearObject(form);
+                router.push("/page/homework");
             })
             return false;
         }
@@ -98,10 +97,7 @@ export default defineComponent({
             page,
             onSubmit,
             onAction,
-            timeframeOptions,
-            directionOptions,
-            symbolOptions,
-            strategyOptions,
+            getTimeframeOptions, getDirectionOptions, getStrategyOptions,
             service
         }
     }

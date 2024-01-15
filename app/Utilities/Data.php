@@ -42,4 +42,10 @@ class Data
         }
         return null;
     }
+
+    public static function getTimestampInMilliseconds(): int
+    {
+        $mt = explode(' ', microtime());
+        return (int)(((int)$mt[1]) * 1000 + round(((float)$mt[0]) * 1000));
+    }
 }

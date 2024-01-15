@@ -43,12 +43,18 @@ Route::middleware(['auth:sanctum', 'apply_locale'])->group(function () {
     /**
      * Trading
      */
-    Route::get('/trading/binance', [BinanceController::class, 'index']);
     Route::get('/trading/exchange/kline', [ExchangeController::class, 'kline']);
     Route::get('/trading/exchange/info', [ExchangeController::class, 'info']);
     Route::get('/trading/exchange/symbols', [ExchangeController::class, 'symbols']);
     Route::get('/trading/exchange/timeframes', [ExchangeController::class, 'timeframes']);
     Route::get('/trading/exchange/strategies', [ExchangeController::class, 'strategies']);
     Route::get('/trading/exchange/symbol/info', [ExchangeController::class, 'symbolInfo']);
+    Route::get('/trading/exchange/ticker24h', [ExchangeController::class, 'ticker24h']);
+    Route::get('/trading/exchange/priceTicker', [ExchangeController::class, 'priceTicker']);
+    Route::get('/trading/exchange/updateLastBar', [ExchangeController::class, 'updateLastBar']);
+    Route::get('/trading/exchange/updateExchangeInfo', [ExchangeController::class, 'updateExchangeInfo']);
+    Route::get('/trading/exchange/getSymbolMinPrice', [ExchangeController::class, 'getSymbolMinPrice']);
+    Route::get('/trading/exchange/getOpenOrders', [ExchangeController::class, 'getOpenOrders']);
+    Route::get('/trading/exchange/getAllOrders', [ExchangeController::class, 'getAllOrders']);
     Route::resource('homework', HomeworkController::class);
 });

@@ -3,6 +3,7 @@
 namespace App\Services\Exchange\Binance;
 
 use App\Contracts\Exchange\ApiInterface;
+use App\Models\Exchange\Order;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
 use App\Services\Exchange\Binance\Local\State;
@@ -266,6 +267,45 @@ class Api implements ApiInterface
             $params['limit'] = $limit;
         }
         $response = $this->request('GET', '/api/v3/allOrders', $params);
+        if (empty($response)) {
+            return [];
+        }
+        return $response;
+    }
+
+    public function createOrder(Order $order): array
+    {
+        $params = [];
+        if (empty($order->symbol) || empty($order->side) || empty($order->type)) {
+            Log::channel('trading')->error('Order required fields validation failed.');
+            return [];
+        }
+        foreach ($order->getFillable() as $fieldName) {
+            if (!empty($order->$fieldName)) {
+                $params[$fieldName] = $order->$fieldName;
+            }
+        }
+        $response = $this->request('POST', '/api/v3/allOrders', $params);
+        if (empty($response)) {
+            return [];
+        }
+        return $response;
+    }
+
+    public function getOrder(string $symbol, int $orderId = null, string $origClientOrderId = ''): array
+    {
+        $params = [];
+        if (empty($symbol) || (empty($orderId) && empty($origClientOrderId))) {
+            Log::channel('trading')->error('Order required fields validation failed.');
+            return [];
+        }
+        $params['symbol'] = $symbol;
+        if (!empty($orderId)) {
+            $params['orderId'] = $orderId;
+        } else {
+            $params['origClientOrderId'] = $origClientOrderId;
+        }
+        $response = $this->request('GET', '/api/v3/order', $params);
         if (empty($response)) {
             return [];
         }

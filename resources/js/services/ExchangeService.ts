@@ -158,4 +158,23 @@ export default class ExchangeService extends ModelService {
         }
         return null;
     }
+
+    public async getOrder(symbol:string, orderId:string, origClientOrderId:string)  {
+        let params = '';
+        if (symbol && (orderId || origClientOrderId)) {
+            params += `?symbol=${symbol}`;
+            if (orderId) {
+                params += `&orderId=${orderId}`;
+            } else {
+                params += `&origClientOrderId=${origClientOrderId}`;
+            }
+
+            const response = await this.get(this.url + '/getOrder/' + params);
+
+            if (response?.data?.order) {
+                return response.data.order;
+            }
+        }
+        return null;
+    }
 }

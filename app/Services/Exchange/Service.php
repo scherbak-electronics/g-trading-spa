@@ -137,4 +137,9 @@ class Service implements ExchangeServiceInterface
     {
         return $this->api->getAllOrders($symbol, $orderId, $startTime, $endTime, $limit);
     }
+
+    public function getOrder(string $symbol, int $orderId = null, string $origClientOrderId = ''): array
+    {
+        return $this->api->getOrder($symbol, $orderId, $origClientOrderId);
+    }
 }

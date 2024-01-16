@@ -56,5 +56,7 @@ Route::middleware(['auth:sanctum', 'apply_locale'])->group(function () {
     Route::get('/trading/exchange/getSymbolMinPrice', [ExchangeController::class, 'getSymbolMinPrice']);
     Route::get('/trading/exchange/getOpenOrders', [ExchangeController::class, 'getOpenOrders']);
     Route::get('/trading/exchange/getAllOrders', [ExchangeController::class, 'getAllOrders']);
+    Route::get('/trading/exchange/getOrder', [ExchangeController::class, 'getOrder']);
+
     Route::resource('homework', HomeworkController::class);
 });

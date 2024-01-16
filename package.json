@@ -15,6 +15,7 @@
         "axios": "^0.21.1",
         "fork-awesome": "^1.2.0",
         "js-cookie": "^3.0.0",
+        "json-tree-view-vue3": "^0.3.1",
         "lightweight-charts": "^4.0.1",
         "pinia": "^2.0.23",
         "resolve-url-loader": "^4.0.0",

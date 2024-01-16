@@ -19,12 +19,7 @@ class ExchangeController extends Controller
         $symbol = $request->query('symbol');
         $interval = $request->query('interval');
         $klineData = $this->exchangeService->getKlineData($symbol, $interval);
-
-        $data = [
-            'timestamp' => now(),
-            'kline_data' => $klineData
-
-        ];
+        $data = ['kline_data' => $klineData];
         return response()->json($data);
     }
 
@@ -80,10 +75,7 @@ class ExchangeController extends Controller
             $sortDir = $request->query('sortDir', 'desc');
         }
         $ticker24h = $this->exchangeService->getTicker24h($quoteAsset, $sortBy, $sortDir);
-        $data = [
-            'timestamp' => now(),
-            'ticker24h' => $ticker24h
-        ];
+        $data = ['ticker24h' => $ticker24h];
         return response()->json($data);
     }
 
@@ -137,10 +129,7 @@ class ExchangeController extends Controller
     {
         $symbol = $request->query('symbol');
         $orders = $this->exchangeService->getOpenOrders($symbol);
-        $data = [
-            'timestamp' => now(),
-            'open_orders' => $orders
-        ];
+        $data = ['open_orders' => $orders];
         return response()->json($data);
     }
 
@@ -152,10 +141,17 @@ class ExchangeController extends Controller
         $endTime = $request->query('endTime');
         $limit = $request->query('limit');
         $orders = $this->exchangeService->getAllOrders($symbol, $orderId, $startTime, $endTime, $limit);
-        $data = [
-            'timestamp' => now(),
-            'all_orders' => $orders
-        ];
+        $data = ['all_orders' => $orders];
+        return response()->json($data);
+    }
+
+    public function getOrder(Request $request): JsonResponse
+    {
+        $symbol = $request->query('symbol');
+        $orderId = $request->query('orderId');
+        $origClientOrderId = $request->query('origClientOrderId');
+        $order = $this->exchangeService->getOrder($symbol, $orderId, $origClientOrderId);
+        $data = ['order' => $order];
         return response()->json($data);
     }
 }

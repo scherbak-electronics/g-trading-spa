@@ -3,16 +3,13 @@ import {default as PageRegister} from "@/views/pages/auth/register/Main";
 import {default as PageResetPassword} from "@/views/pages/auth/reset-password/Main";
 import {default as PageForgotPassword} from "@/views/pages/auth/forgot-password/Main";
 import {default as PageNotFound} from "@/views/pages/shared/404/Main";
-
 import {default as PageDashboard} from "@/views/pages/private/dashboard/Main";
 import {default as PageProfile} from "@/views/pages/private/profile/Main";
-
 import {default as PageUsers} from "@/views/pages/private/users/Index";
 import {default as PageUsersCreate} from "@/views/pages/private/users/Create";
 import {default as PageUsersEdit} from "@/views/pages/private/users/Edit";
-
-// Trading Pages
 import {default as PageMarkets} from "@/views/pages/private/trading/Markets";
+import {default as PageSession} from "@/views/pages/private/trading/Session";
 import {default as PageOrders} from "@/views/pages/private/trading/Orders";
 import {default as PageDebug} from "@/views/pages/private/trading/Debug";
 import {default as PageHomeworkList} from "@/views/pages/private/trading/HomeworkList";
@@ -75,6 +72,12 @@ const routes = [
         path: "/page/markets",
         meta: {requiresAuth: true, title: 'Markets'},
         component: PageMarkets,
+    },
+    {
+        name: "session",
+        path: "/page/session",
+        meta: {requiresAuth: true, title: 'Session'},
+        component: PageSession,
     },
     {
         name: "homework",

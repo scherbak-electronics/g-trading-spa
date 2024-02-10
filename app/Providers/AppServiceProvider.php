@@ -7,6 +7,7 @@ use App\Services\Exchange\Binance\Api as BinanceApi;
 use App\Services\Exchange\Binance\Local\State;
 use App\Services\Exchange\Binance\Local\Storage;
 use App\Services\Exchange\Service as ExchangeService;
+use App\Services\Trading\OrderQueueService;
 use Illuminate\Support\ServiceProvider;
 
 
@@ -17,7 +18,7 @@ class AppServiceProvider extends ServiceProvider
      *
      * @return void
      */
-    public function register()
+    public function register(): void
     {
         $this->app->bind(ExchangeServiceInterface::class, function ($app) {
             return new ExchangeService(
@@ -26,6 +27,17 @@ class AppServiceProvider extends ServiceProvider
                 ),
                 new State(),
                 new Storage()
+            );
+        });
+        $this->app->bind(OrderQueueService::class, function ($app) {
+            return new OrderQueueService(
+                new ExchangeService(
+                    new BinanceApi(
+                        new State()
+                    ),
+                    new State(),
+                    new Storage()
+                )
             );
         });
     }

@@ -50,6 +50,9 @@
                         <router-link to="/page/markets" class="block px-4 py-2 hover:bg-theme-800 hover:text-white hover:opacity-80">
                             {{ trans('global.pages.markets') }}
                         </router-link>
+                        <router-link to="/page/session" class="block px-4 py-2 hover:bg-theme-800 hover:text-white hover:opacity-80">
+                            {{ trans('global.pages.session') }}
+                        </router-link>
                         <router-link to="/page/homework" class="block px-4 py-2 hover:bg-theme-800 hover:text-white hover:opacity-80">
                             {{ trans('global.pages.homework') }}
                         </router-link>
@@ -159,6 +162,14 @@ export default {
                     showMobile: true,
                     requiresAbility: false,
                     to: '/page/markets',
+                },
+                {
+                    name: trans('global.pages.session'),
+                    icon: 'bar-chart',
+                    showDesktop: true,
+                    showMobile: true,
+                    requiresAbility: false,
+                    to: '/page/session',
                 },
                 {
                     name: trans('global.pages.homework'),

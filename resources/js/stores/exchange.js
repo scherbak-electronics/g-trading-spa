@@ -5,7 +5,7 @@ export const useExchangeStateStore = defineStore('state_exchange', {
         const sortByOptions = ['quote_volume', 'price_change_percent'];
         const sortDirOptions = ['desc', 'asc'];
         return {
-            symbol: 'BTCBUSD',
+            symbol: 'BTCUSDT',
             interval: '1d',
             topChartData: [],
             bottomChartData: [],

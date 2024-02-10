@@ -103,6 +103,7 @@ return [
             "reset_password" => "Reset Password",
             "trading" => "Trading",
             "markets" => "Markets",
+            "session" => "Session",
             "orders" => "Orders",
             "dev" => "Debug",
             "homework" => "Homework",

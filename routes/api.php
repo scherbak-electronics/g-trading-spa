@@ -1,9 +1,9 @@
 <?php
 
-use App\Http\Controllers\BinanceController;
 use App\Http\Controllers\ExchangeController;
 use App\Http\Controllers\HomeworkController;
 use App\Http\Controllers\RoleController;
+use App\Http\Controllers\SessionController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\UserController;
@@ -57,6 +57,11 @@ Route::middleware(['auth:sanctum', 'apply_locale'])->group(function () {
     Route::get('/trading/exchange/getOpenOrders', [ExchangeController::class, 'getOpenOrders']);
     Route::get('/trading/exchange/getAllOrders', [ExchangeController::class, 'getAllOrders']);
     Route::get('/trading/exchange/getOrder', [ExchangeController::class, 'getOrder']);
+    Route::get('/trading/session/get', [SessionController::class, 'getSession']);
+    Route::get('/trading/session/create', [SessionController::class, 'create']);
+    Route::get('/trading/session/start', [SessionController::class, 'start']);
+    Route::get('/trading/session/stop', [SessionController::class, 'stop']);
+    Route::get('/trading/session/delete', [SessionController::class, 'stop']);
 
     Route::resource('homework', HomeworkController::class);
 });

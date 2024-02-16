@@ -9,8 +9,6 @@ use GuzzleHttp\Exception\GuzzleException;
 use App\Services\Exchange\Binance\Local\State;
 use App\Utilities\Data;
 use Illuminate\Support\Facades\Log;
-use Psr\Http\Message\ResponseInterface;
-use Binance\APIClient;
 
 class Api implements ApiInterface
 {
@@ -172,19 +170,14 @@ class Api implements ApiInterface
         for ($i = $tries; $i >= 0; $i--) {
             if ($i == 0) {
                 Log::channel('trading')->error('API still busy after '.$tries.' trys.');
-                $this->state->setValue('api_busy', 'no');
+                $this->state->setApiBusy('no');
                 return null;
             }
-            $flag = $this->state->getValue('api_busy');
-            if ($flag === 'yes') {
+            if ($this->state->isApiBusy()) {
                 usleep(20000);
-            } elseif ($flag === 'no') {
-                //Log::channel('trading')->info('occupy API now!');
-                $this->state->setValue('api_busy', 'yes');
-                break;
             } else {
-                Log::channel('trading')->info('API busy flag init.');
-                $this->state->setValue('api_busy', 'yes');
+                //Log::channel('trading')->info('occupy API now!');
+                $this->state->setApiBusy('yes');
                 break;
             }
         }
@@ -221,7 +214,7 @@ class Api implements ApiInterface
             Log::channel('trading')->error('An unexpected error occurred: '.$e->getMessage());
         }
         $this->state->setLastRequestTime(Data::getTimestampInMilliseconds());
-        $this->state->setValue('api_busy', 'no');
+        $this->state->setApiBusy('no');
         return $response;
     }
 

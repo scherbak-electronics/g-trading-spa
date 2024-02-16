@@ -9,6 +9,9 @@ use App\Services\Exchange\Binance\Local\Storage;
 use App\Services\Exchange\Service as ExchangeService;
 use App\Services\Trading\OrderQueueService;
 use Illuminate\Support\ServiceProvider;
+use App\Models\Variable\BigUInt;
+use App\Models\Variable\Text;
+
 
 
 class AppServiceProvider extends ServiceProvider
@@ -20,24 +23,27 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
+        $this->app->bind(State::class, function ($app) {
+            return new State(
+                new BigUInt(),
+                new Text()
+            );
+        });
+        $this->app->bind(BinanceApi::class, function ($app) {
+            return new BinanceApi(
+                $this->app->make(State::class)
+            );
+        });
         $this->app->bind(ExchangeServiceInterface::class, function ($app) {
             return new ExchangeService(
-                new BinanceApi(
-                    new State()
-                ),
-                new State(),
+                $this->app->make(BinanceApi::class),
+                $this->app->make(State::class),
                 new Storage()
             );
         });
         $this->app->bind(OrderQueueService::class, function ($app) {
             return new OrderQueueService(
-                new ExchangeService(
-                    new BinanceApi(
-                        new State()
-                    ),
-                    new State(),
-                    new Storage()
-                )
+                $this->app->make(ExchangeService::class)
             );
         });
     }

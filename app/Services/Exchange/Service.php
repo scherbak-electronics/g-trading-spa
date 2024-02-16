@@ -63,10 +63,10 @@ class Service implements ExchangeServiceInterface
 
     public function getTicker24h(string $quoteAsset, string $sortByField, string $sortDir): array
     {
-        $lastUpdateTime = $this->state->getValue('ticker24_last_update_time', 0);
+        $lastUpdateTime = $this->state->getTicker24LastUpdateTime();
         $nowTime = Data::getTimestampInMilliseconds();
         if (($nowTime - $lastUpdateTime) > Service::TIME_MS_TICKER24_UPDATE_TIME) {
-            $this->state->setValue('ticker24_last_update_time', $nowTime);
+            $this->state->setTicker24LastUpdateTime($nowTime);
             $tickers = $this->api->getTicker24h();
             $this->db->updateTickers($tickers);
         }
@@ -102,10 +102,10 @@ class Service implements ExchangeServiceInterface
 
     public function updateExchangeInfo(): void
     {
-        $lastUpdateTime = $this->state->getValue('exchange_info_last_update_time', 0);
+        $lastUpdateTime = $this->state->getExchangeInfoLastUpdateTime();
         $nowTime = Data::getTimestampInMilliseconds();
         if (($nowTime - $lastUpdateTime) > Service::TIME_MS_EXCHANGE_INFO_UPDATE_TIME) {
-            $this->state->setValue('exchange_info_last_update_time', $nowTime);
+            $this->state->setExchangeInfoLastUpdateTime($nowTime);
             $info = $this->api->getExchangeInfo();
             $this->db->updateExchangeInfo($info);
         }

@@ -5,69 +5,56 @@
  * */
 namespace App\Services\Exchange\Binance\Local;
 
-use App\Models\Exchange\Local\State as DbState;
+use App\Models\Variable\BigUInt;
+use App\Models\Variable\Text;
 
 class State
 {
-    const COLUMN_NAMES_API_STATE = ['param_name', 'value', 'decimal_value', 'bigint_value'];
+    public function __construct(
+        protected readonly BigUInt $varBigInt,
+        protected readonly Text $varText
+    ){}
 
     public function getLastRequestTime()
     {
-        return $this->getValue('last_request_time', 0);
+        return $this->varBigInt->getValue('last_request_time', 0);
     }
 
     public function setLastRequestTime(int $requestTime): void
     {
-        $this->setValue('last_request_time', $requestTime);
+        $this->varBigInt->setValue('last_request_time', $requestTime);
     }
 
-    public function getValue(string $name, mixed $defaultValue = null): mixed
+    public function setApiBusy(string $value): void
     {
-        $exist = DbState::query()->select()->where('param_name', $name)->exists();
-        if (!$exist) {
-            return $defaultValue;
-        }
-        $res = DbState::query()->select(['value', 'bigint_value', 'decimal_value'])->where('param_name', $name)->first();
-        if (!empty($res->value)) {
-            return $res->value;
-        }
-        if (!empty((int)$res->bigint_value)) {
-            return (int)$res->bigint_value;
-        }
-        if (!empty((int)$res->decimal_value)) {
-            return (int)$res->decimal_value;
-        }
-        return $defaultValue;
+        $this->varText->setValue('api_busy', $value);
     }
 
-    public function setValue(string $name, mixed $value): void
+    public function isApiBusy(): bool
     {
-        $stringValue = null;
-        $decValue = null;
-        $intValue = null;
-        if (is_string($value)) {
-            $stringValue = $value;
+        if ($this->varText->getValue('api_busy') === 'yes') {
+            return true;
         }
-        if (is_float($value)) {
-            $decValue = $value;
-        }
-        if (is_int($value)) {
-            $intValue = $value;
-        }
-        if (is_null($stringValue) && is_null($decValue) && is_null($intValue)) {
-            return;
-        }
-        DbState::query()->upsert(
-            [
-                [
-                    'param_name' => $name,
-                    'value' => $stringValue,
-                    'decimal_value' => $decValue,
-                    'bigint_value' => $intValue
-                ]
-            ],
-            ['param_name'],
-            self::COLUMN_NAMES_API_STATE
-        );
+        return false;
+    }
+
+    public function getTicker24LastUpdateTime(): int
+    {
+        return $this->varBigInt->getValue('ticker24_last_update_time', 0);
+    }
+
+    public function setTicker24LastUpdateTime(int $time): void
+    {
+        $this->varBigInt->setValue('ticker24_last_update_time', $time);
+    }
+
+    public function getExchangeInfoLastUpdateTime(): int
+    {
+        return $this->varBigInt->getValue('exchange_info_last_update_time', 0);
+    }
+
+    public function setExchangeInfoLastUpdateTime(int $time): void
+    {
+        $this->varBigInt->setValue('exchange_info_last_update_time', $time);
     }
 }

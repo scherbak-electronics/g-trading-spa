@@ -3,11 +3,11 @@
 namespace App\Services\Exchange\Binance;
 
 use App\Contracts\Exchange\ApiInterface;
+use App\Models\Exchange\Local\State;
 use App\Models\Exchange\Order;
+use App\Utilities\Data;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
-use App\Services\Exchange\Binance\Local\State;
-use App\Utilities\Data;
 use Illuminate\Support\Facades\Log;
 
 class Api implements ApiInterface

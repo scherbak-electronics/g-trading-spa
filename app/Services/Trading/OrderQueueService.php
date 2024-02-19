@@ -3,8 +3,6 @@
 namespace App\Services\Trading;
 
 use App\Models\Exchange\Order;
-use App\Services\Exchange\Binance\Local\State;
-use App\Services\Exchange\Binance\Local\Storage;
 use App\Models\Trading\OrderQueueItem;
 use App\Services\Exchange\Service;
 use App\Utilities\Data;

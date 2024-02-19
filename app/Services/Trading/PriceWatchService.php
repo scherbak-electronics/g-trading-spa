@@ -2,25 +2,20 @@
 
 namespace App\Services\Trading;
 
-use App\Contracts\Exchange\ServiceInterface as ExchangeServiceInterface;
-use App\Http\Resources\SymbolsResource;
-use App\Services\Exchange\Binance\Api;
-use App\Services\Exchange\Binance\Local\State;
-use App\Services\Exchange\Binance\Local\Storage;
-use App\Utilities\Data;
-use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
-use App\Models\Exchange\Symbol;
+use App\Services\Exchange\Service as ExchangeService;
 
 class PriceWatchService
 {
     public function __construct(
-        protected Api $api,
-        protected State $state,
-        protected Storage $db
+        protected readonly ExchangeService $exchange
     ) {
     }
 
-    public function getPrice(int $id): float
+    public function tick(): void
+    {
+        $price = $this->getPrice();
+    }
+    public function getPrice(): float
     {
         return 0;
     }

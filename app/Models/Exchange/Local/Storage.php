@@ -2,7 +2,7 @@
 /*
  * Binance API Database Layer
  * */
-namespace App\Services\Exchange\Binance\Local;
+namespace App\Models\Exchange\Local;
 
 use App\Contracts\ExchangeInterface;
 use App\Models\Exchange\Kline;

@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Models\AppLogic;
 use Binance\Websocket\Spot;
 use Illuminate\Console\Command;
 use React\EventLoop\Loop;
@@ -9,23 +10,14 @@ use React\Socket\Connector;
 
 class RunCommand extends Command
 {
-    /**
-     * The name and signature of the console command.
-     *
-     * @var string
-     */
     protected $signature = 'app:run';
-
-    /**
-     * The console command description.
-     *
-     * @var string
-     */
     protected $description = 'Run application asynchronous processes';
 
-    /**
-     * Execute the console command.
-     */
+    public function __construct(protected AppLogic $appLogic)
+    {
+        parent::__construct();
+    }
+
     public function handle(): void
     {
         $loop = Loop::get();
@@ -36,8 +28,14 @@ class RunCommand extends Command
 
         $callbacks = [
             'message' => function($conn, $msg){
-                $this->line('message received');
-                $this->line($msg);
+                $msgArray = json_decode($msg, true);
+                $itemsCount = count($msgArray);
+                $result = $this->appLogic->handleSocketMessage($msgArray);
+                $this->output->write("\033c");
+                $this->info("items count: " . $itemsCount);
+                foreach ($result as $param => $value) {
+                    $this->info($param . ": " . $value);
+                }
             },
             'pong' => function($conn) {
                 $this->line("received pong from server");
@@ -49,15 +47,7 @@ class RunCommand extends Command
                 $this->line("receive closed.");
             }
         ];
-
-        $client->miniTicker($callbacks, 'btcusdt');
-        // $client->
-
-        $loop->addPeriodicTimer(2, function () use ($client) {
-            $client->ping();
-            $this->line("ping sent ");
-        });
-
+        $client->ticker($callbacks);
         $loop->run();
     }
 }

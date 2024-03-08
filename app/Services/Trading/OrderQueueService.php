@@ -4,7 +4,7 @@ namespace App\Services\Trading;
 
 use App\Models\Exchange\Order;
 use App\Models\Trading\OrderQueueItem;
-use App\Services\Exchange\Service;
+use App\Services\Exchange\ExchangeService;
 use App\Utilities\Data;
 use Illuminate\Support\Facades\Log;
 
@@ -15,7 +15,7 @@ class OrderQueueService
     private int $startTime;
 
     public function __construct(
-        protected Service $exchangeService
+        protected ExchangeService $exchangeService
     ) {
     }
 

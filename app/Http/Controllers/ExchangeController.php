@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use App\Contracts\Exchange\ServiceInterface as ExchangeServiceInterface;
 use App\Contracts\TradingLogicInterface;
+use App\Models\AppState;
+use App\Models\Exchange\ActiveSymbol;
+use App\Services\Exchange\ExchangeService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -11,7 +13,10 @@ use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class ExchangeController extends Controller
 {
-    public function __construct(protected readonly ExchangeServiceInterface $exchangeService)
+    public function __construct(
+        protected readonly ExchangeService $exchangeService,
+        protected readonly AppState $state
+    )
     {}
 
     public function kline(Request $request): JsonResponse
@@ -20,6 +25,8 @@ class ExchangeController extends Controller
         $interval = $request->query('interval');
         $klineData = $this->exchangeService->getKlineData($symbol, $interval);
         $data = ['kline_data' => $klineData];
+        ActiveSymbol::setActiveSymbol($symbol);
+        //$this->state->setActiveSymbols([$symbol]);
         return response()->json($data);
     }
 

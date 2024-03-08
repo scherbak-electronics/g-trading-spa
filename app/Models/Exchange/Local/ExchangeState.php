@@ -8,7 +8,7 @@ namespace App\Models\Exchange\Local;
 use App\Models\Variable\BigUInt;
 use App\Models\Variable\Text;
 
-class State
+class ExchangeState
 {
     public function __construct(
         protected readonly BigUInt $varBigInt,

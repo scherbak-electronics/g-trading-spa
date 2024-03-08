@@ -2,7 +2,7 @@
 
 namespace App\Services\Trading;
 
-use App\Services\Exchange\Service as ExchangeService;
+use \App\Services\Exchange\ExchangeService;
 
 class PriceWatchService
 {

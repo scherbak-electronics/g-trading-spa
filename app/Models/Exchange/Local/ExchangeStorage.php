@@ -9,7 +9,7 @@ use App\Models\Exchange\Kline;
 use App\Models\Exchange\Symbol;
 use App\Models\Exchange\Ticker;
 
-class Storage
+class ExchangeStorage
 {
     const TICKER_COLUMNS = [
         'price_change', 'price_change_percent', 'last_price', 'open', 'high', 'low',

@@ -3,12 +3,13 @@
 namespace App\Services\Exchange\Binance;
 
 use App\Contracts\Exchange\ApiInterface;
-use App\Models\Exchange\Local\State;
+use App\Models\Exchange\Local\ExchangeState;
 use App\Models\Exchange\Order;
 use App\Utilities\Data;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
 use Illuminate\Support\Facades\Log;
+use App\Models\Exchange\Ticker;
 
 class Api implements ApiInterface
 {
@@ -28,7 +29,7 @@ class Api implements ApiInterface
     protected Client $client;
     protected APIClientSecure $clientSecure;
 
-    public function __construct(protected State $state)
+    public function __construct(protected ExchangeState $state)
     {
         $this->client = new Client([
             'base_uri' => 'https://api.binance.com',
@@ -110,34 +111,17 @@ class Api implements ApiInterface
         $res = [];
         if (is_array($tickers)) {
             if (empty($tickers[0]) || !is_array($tickers[0])) {
-                $res[] = $this->convertTicker24hData($tickers);
+                $res[] = Ticker::convertRestData($tickers);
             } else {
                 foreach ($tickers as $ticker) {
-                    $res[] = $this->convertTicker24hData($ticker);
+                    $res[] = Ticker::convertRestData($ticker);
                 }
             }
         }
 
         return $res;
     }
-
-    private function convertTicker24hData(array $ticker): array
-    {
-        return [
-            'symbol' => $ticker['symbol'],
-            'price_change_percent' => $ticker['priceChangePercent'],
-            'price_change' => $ticker['priceChange'],
-            'last_price' => $ticker['lastPrice'],
-            'open' => $ticker['openPrice'],
-            'high' => $ticker['highPrice'],
-            'low' => $ticker['lowPrice'],
-            'volume' => $ticker['volume'],
-            'quote_volume' => $ticker['quoteVolume'],
-            'open_time' => $ticker['openTime'],
-            'close_time' => $ticker['closeTime']
-        ];
-    }
-
+    
     public function getLastBar(string $symbol, string $interval): array
     {
         $klines = $this->getKlineData($symbol, $interval, null, null, 1);

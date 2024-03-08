@@ -4,21 +4,21 @@ namespace App\Services\Exchange;
 
 use App\Contracts\Exchange\ServiceInterface as ExchangeServiceInterface;
 use App\Http\Resources\SymbolsResource;
-use App\Models\Exchange\Local\State;
-use App\Models\Exchange\Local\Storage;
+use App\Models\Exchange\Local\ExchangeState;
+use App\Models\Exchange\Local\ExchangeStorage;
 use App\Models\Exchange\Symbol;
 use App\Services\Exchange\Binance\Api;
 use App\Utilities\Data;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
-class Service implements ExchangeServiceInterface
+class ExchangeService implements ExchangeServiceInterface
 {
     public const TIME_MS_TICKER24_UPDATE_TIME = 1000 * 60 * 60 * 24;
     public const TIME_MS_EXCHANGE_INFO_UPDATE_TIME = 1000 * 60 * 60 * 24 * 7;
     public function __construct(
-        protected Api $api,
-        protected State $state,
-        protected Storage $db
+        protected Api           $api,
+        protected ExchangeState $state,
+        protected ExchangeStorage $db
     ) {
     }
 
@@ -65,7 +65,7 @@ class Service implements ExchangeServiceInterface
     {
         $lastUpdateTime = $this->state->getTicker24LastUpdateTime();
         $nowTime = Data::getTimestampInMilliseconds();
-        if (($nowTime - $lastUpdateTime) > Service::TIME_MS_TICKER24_UPDATE_TIME) {
+        if (($nowTime - $lastUpdateTime) > self::TIME_MS_TICKER24_UPDATE_TIME) {
             $this->state->setTicker24LastUpdateTime($nowTime);
             $tickers = $this->api->getTicker24h();
             $this->db->updateTickers($tickers);
@@ -104,7 +104,7 @@ class Service implements ExchangeServiceInterface
     {
         $lastUpdateTime = $this->state->getExchangeInfoLastUpdateTime();
         $nowTime = Data::getTimestampInMilliseconds();
-        if (($nowTime - $lastUpdateTime) > Service::TIME_MS_EXCHANGE_INFO_UPDATE_TIME) {
+        if (($nowTime - $lastUpdateTime) > self::TIME_MS_EXCHANGE_INFO_UPDATE_TIME) {
             $this->state->setExchangeInfoLastUpdateTime($nowTime);
             $info = $this->api->getExchangeInfo();
             $this->db->updateExchangeInfo($info);

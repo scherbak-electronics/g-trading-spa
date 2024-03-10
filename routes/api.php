@@ -58,10 +58,10 @@ Route::middleware(['auth:sanctum', 'apply_locale'])->group(function () {
     Route::get('/trading/exchange/getAllOrders', [ExchangeController::class, 'getAllOrders']);
     Route::get('/trading/exchange/getOrder', [ExchangeController::class, 'getOrder']);
     Route::get('/trading/session/get', [SessionController::class, 'getSession']);
-    Route::get('/trading/session/create', [SessionController::class, 'create']);
-    Route::get('/trading/session/start', [SessionController::class, 'start']);
-    Route::get('/trading/session/stop', [SessionController::class, 'stop']);
-    Route::get('/trading/session/delete', [SessionController::class, 'stop']);
 
     Route::resource('homework', HomeworkController::class);
+    Route::resource('trading/session', SessionController::class)->only(['store', 'update']);
+    Route::patch('trading/session/update/{session}', [SessionController::class, 'update']);
+    Route::patch('trading/session/{session}/start', [SessionController::class, 'start']);
+    Route::patch('trading/session/{session}/stop', [SessionController::class, 'stop']);
 });

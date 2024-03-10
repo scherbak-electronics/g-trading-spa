@@ -3,44 +3,56 @@
 namespace App\Services\Trading;
 
 use App\Models\Trading\Session;
+use Illuminate\Support\Facades\Auth;
 
 class SessionService
 {
     public function __construct() {
     }
 
-    public function handleSocketTickers(array $tickers): void
+    public function create(array $data): array
     {
-        $activeSessions = $this->getActiveSessions();
-        foreach ($activeSessions as $activeSession) {
-            foreach ($tickers as $ticker) {
-                if ($activeSession['symbol'] === $ticker['s']) {
-                    // logic
-                }
-            }
+        $userId = auth()->id();
+        if (empty($userId)) {
+            return [];
         }
+        $data['user_id'] = $userId;
+        $data['default_timeframe'] = '1h';
+        $data['small_timeframe'] = '15m';
+        $data['big_timeframe'] = '1d';
+        $data['current_timeframe'] = '1h';
+        $data['side'] = 'long';
+        $data['state'] = 'new';
+        return Session::query()->create($data)->toArray();
     }
 
     public function getSession(int $id): array
     {
-        return [
-            'id' => 1,
-            'symbol' => 'BTCUSDT',
-            'user_id' => 1,
-            'state' => 'new'
-        ];
+        $session = Session::find($id);
+        if (empty($session)) {
+            return [];
+        }
+        return $session->toArray();
     }
 
     public function getActiveSessions(): array
     {
         $query = Session::query();
-        return [
-            [
-                'id' => 1,
-                'symbol' => 'BTCUSDT',
-                'user_id' => 1,
-                'state' => 'new'
-            ]
-        ];
+        return $query->select('*')->get()->toArray();
+    }
+
+    public function start($id): array
+    {
+        return [];
+    }
+
+    public function stop($id): array
+    {
+        return [];
+    }
+
+    public function update(array $data): array
+    {
+        return [];
     }
 }

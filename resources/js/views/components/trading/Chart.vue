@@ -1,5 +1,5 @@
 <script>
-import { createChart } from 'lightweight-charts';
+import {createChart, LineStyle} from 'lightweight-charts';
 import * as LightweightCharts from "lightweight-charts";
 import stylesConfig from "@/stub/trading/styles";
 import ExchangeService from "@/services/ExchangeService";
@@ -16,26 +16,61 @@ let markers = [];
 let highlightMarkers = [];
 let isCursorActive = false;
 let timeUnderCursor = 0;
-let levelTradingStyleName = '';
+let levelName = '';
 let levelSide = '';
+let levelOptions = {};
+let levelSnapTo = '';
 let levels = [];
 let cursorPriceLine = undefined;
 let stateMarkets = undefined;
 let stateLevels = undefined;
 
-const resizeHandler = container => {
-    if (!chart || !container) {
-        return;
-    }
-    let dimensions = container.getBoundingClientRect();
-    //console.log(dimensions.width, dimensions.height);
-    //console.log(chart.options().width, chart.options().height);
-    chart.resize(dimensions.width, dimensions.height);
-    //console.log('after resize');
-    dimensions = container.getBoundingClientRect();
-    //console.log(dimensions.width, dimensions.height);
+// start level selection mode, hides crosshair cursor,
+// set price line visible instead of cursor
+// after that you have to stop selection mode and save selected price
+const createNewLevel = (name, options) => {
+    isCursorActive = true;
+    levelName = name;
+    levelOptions = options;
+    chart.applyOptions({
+        crosshair: {
+            horzLine: {
+                labelVisible: false,
+                visible: false
+            }
+        },
+    });
 };
 
+// moves (updates) the price line with cross cursor
+// during level selection mode
+function updateLevelPriceLine(ohlcData) {
+    if (cursorPriceLine) {
+        series.removePriceLine(cursorPriceLine);
+        cursorPriceLine = undefined;
+    }
+    cursorPriceLine = series.createPriceLine(
+        getPriceLineOptions(ohlcData)
+    );
+}
+
+function getPriceLineOptions(ohlcData) {
+    let levelPrice = levelOptions.price;
+    if (levelSnapTo) {
+        levelPrice = ohlcData[levelSnapTo];
+    }
+    return {
+        price: levelPrice,
+        color: levelOptions.color || '#3179F5',
+        lineWidth: 1,
+        lineStyle: levelOptions.lineStyle || LineStyle.Dashed, // LineStyle.Dashed
+        axisLabelVisible: true,
+        title: levelName
+    };
+}
+
+// stop level selection mode and save level under cursor
+// makes crosshair cursor visible again
 function saveLevel(ohlcData) {
     isCursorActive = false;
     saveLevelPriceLine(ohlcData);
@@ -52,50 +87,68 @@ function saveLevel(ohlcData) {
     });
 }
 
-function updateLevelPriceLine(ohlcData) {
+const saveLevelPriceLine = (ohlcData) => {
     if (cursorPriceLine) {
         series.removePriceLine(cursorPriceLine);
         cursorPriceLine = undefined;
     }
-    cursorPriceLine = series.createPriceLine(
-        getPriceLineOptions(ohlcData)
-    );
+    let priceLineData = getPriceLineOptions(ohlcData);
+    addLevel({
+        price: priceLineData.price,
+        priceLine: series.createPriceLine(priceLineData),
+        markers: [getLevelMarker(ohlcData.time)]
+    });
 }
 
-function getPriceLineOptions(ohlcData) {
-    return {
-        price: ohlcData[tradingStylesConfig[levelTradingStyleName][levelSide].levelPriceLineOptions.pricePropertyName],
-        color: '#3179F5',
-        lineWidth: 1,
-        lineStyle: 2, // LineStyle.Dashed
-        axisLabelVisible: true,
-        title: levelTradingStyleName + ' - ' + levelSide
-    };
+function addLevel(level) {
+    levels.push(level);
 }
+
+
+
+
 
 function getLevelMarker(time) {
+    let levelMarker = {
+        position: 'belowBar',
+            color: '#559955',
+            shape: 'arrowUp',
+            text: 'LFB'
+    };
     return {
         time: time,
-        ...tradingStylesConfig[levelTradingStyleName][levelSide].levelMarker
+        ...levelMarker
     };
 }
 
 function getCursorMarker(time) {
+    let cursorMarker = {
+        position: 'belowBar',
+        color: '#f68410',
+        shape: 'arrowUp',
+        text: 'Click to save'
+    };
     return {
         time: time,
-        ...tradingStylesConfig[levelTradingStyleName][levelSide].cursorMarker
+        ...cursorMarker
     };
 }
 
 function highlightLevelBars(price, side, accuracy) {
     highlightMarkers = [];
+    let levelMarker = {
+        position: 'belowBar',
+        color: '#559955',
+        shape: 'arrowUp',
+        text: 'LFB'
+    };
     stateMarkets.topChartData.forEach(item => {
         let maxDiff = 100;
         let itemPriceDiff = Math.abs(price - item.high);
         if (itemPriceDiff < maxDiff) {
             highlightMarkers.push({
                 time: item.time,
-                ...tradingStylesConfig[levelTradingStyleName][levelSide].levelMarker
+                ...levelMarker
             });
         }
     });
@@ -109,15 +162,13 @@ function updateMarkers(time, callback) {
         }
         markers.push(...getAllLevelsMarkers());
         markers.push(...highlightMarkers);
-        callback(markers);
+        if (callback) {
+            callback(markers);
+        }
     }
     if (markers) {
         markers = undefined;
     }
-}
-
-function addLevel(level) {
-    levels.push(level);
 }
 
 function getAllLevelsMarkers() {
@@ -134,32 +185,9 @@ function getLastAddedLevelPrice() {
     }
 }
 
-const saveLevelPriceLine = (ohlcData) => {
-    if (cursorPriceLine) {
-        series.removePriceLine(cursorPriceLine);
-        cursorPriceLine = undefined;
-    }
-    let priceLineData = getPriceLineOptions(ohlcData);
-    addLevel({
-        price: priceLineData.price,
-        priceLine: series.createPriceLine(priceLineData),
-        markers: [getLevelMarker(ohlcData.time)]
-    });
-}
 
-const createNewLevel = (tradingStyle, side) => {
-    isCursorActive = true;
-    levelTradingStyleName = tradingStyle;
-    levelSide = side;
-    chart.applyOptions({
-        crosshair: {
-            horzLine: {
-                labelVisible: false,
-                visible: false
-            }
-        },
-    });
-};
+
+
 
 const crosshairMoveHandler = param => {
     if (isCursorActive) {
@@ -167,10 +195,16 @@ const crosshairMoveHandler = param => {
             return;
         }
         if (param.time) {
+            levelOptions.price = series.coordinateToPrice(param.point.y);
+            //console.log('param point price: ', levelOptions.price);
             const data = param.seriesData.get(series);
-            if (timeUnderCursor !== data.time) {
-                timeUnderCursor = data.time;
-                updateMarkers(timeUnderCursor);
+            if (levelSnapTo) {
+                if (timeUnderCursor !== data.time) {
+                    timeUnderCursor = data.time;
+                    updateMarkers(timeUnderCursor);
+                    updateLevelPriceLine(data);
+                }
+            } else {
                 updateLevelPriceLine(data);
             }
         }
@@ -184,7 +218,7 @@ const chartClickHandler = param => {
         }
         const data = param.seriesData.get(series);
         saveLevel(data);
-        console.log(`Click at ${param.point.x}, ${param.point.y}. The time is ${param.time}.`);
+        //console.log(`Click at ${param.point.x}, ${param.point.y}. The time is ${param.time}.`);
     }
 }
 
@@ -197,6 +231,20 @@ const visibleTimeRangeChangeHandler = (range) => {
         }
     }
 }
+
+const resizeHandler = container => {
+    if (!chart || !container) {
+        return;
+    }
+    let dimensions = container.getBoundingClientRect();
+    //console.log(dimensions.width, dimensions.height);
+    //console.log(chart.options().width, chart.options().height);
+    chart.resize(dimensions.width, dimensions.height);
+    //console.log('after resize');
+    dimensions = container.getBoundingClientRect();
+    //console.log(dimensions.width, dimensions.height);
+};
+
 
 export default {
     props: {
@@ -327,8 +375,8 @@ export default {
                 close: lastBar.close,
             });
         },
-        createNewLevel(tradingStyle, side) {
-            createNewLevel(tradingStyle, side);
+        createNewLevel(name, options) {
+            createNewLevel(name, options);
         },
         saveLevel() {
             saveLevel();

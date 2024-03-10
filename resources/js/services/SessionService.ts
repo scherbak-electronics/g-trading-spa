@@ -14,4 +14,15 @@ export default class SessionService extends ModelService {
         }
         return null;
     }
+
+    public async createSession(symbol:string) {
+        let data = {
+            'symbol': symbol
+        };
+        let response = await this.post(this.url, data);
+        if (response?.data?.new_session) {
+            return response.data.new_session;
+        }
+        return null;
+    }
 }

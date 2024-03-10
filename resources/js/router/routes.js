@@ -75,7 +75,7 @@ const routes = [
     },
     {
         name: "session",
-        path: "/page/session",
+        path: "/page/session/:id",
         meta: {requiresAuth: true, title: 'Session'},
         component: PageSession,
     },

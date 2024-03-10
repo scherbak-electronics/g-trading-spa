@@ -5,7 +5,7 @@
                 <div>
                     <div class="flex market-summary mb-2 p-2">
                         <div class="flex-grow symbol">
-                            <h4>session</h4>
+                            <h4>session {{ sessionId }}</h4>
                             <h1>{{ stateExchange.symbol }}</h1>
                         </div>
                         <div class="flex-grow price">
@@ -14,7 +14,7 @@
                         </div>
                     </div>
                     <div class="text-left">
-                        <Button @click="onClickLoadData" class="mb-2 mr-2" :label="'Load Data'"/>
+                        <Button @click="onClickSetEntryPoint" class="mb-2 mr-2" :label="'Set Entry Point'"/>
                         <Button @click="onClickFindLevel" class="mb-2 mr-2" :label="'Find Level'"/>
                         <Button @click="onClickFindLevel2" class="mb-2 mr-2" :label="'Find Level short'"/>
                         <Button @click="onClickHighlightBars" class="mb-2 mr-2" :label="'Highlight Bars'"/>
@@ -35,7 +35,7 @@
 </template>
 
 <script setup>
-import {ref, onMounted, onBeforeUnmount, watch} from 'vue';
+import {ref, onMounted, onBeforeUnmount} from 'vue';
 import LWChart from "@/views/components/trading/Chart";
 import Page from "@/views/layouts/Page";
 import Button from "@/views/components/input/Button";
@@ -46,7 +46,10 @@ import ButtonsTimeframe from "@/views/components/trading/ButtonsTimeframe.vue";
 import ExchangeService from "@/services/ExchangeService";
 import SessionService from "@/services/SessionService";
 import localStorageService from "@/services/LocalStorageService";
+import { useRoute } from 'vue-router';
 
+let route = useRoute();
+let sessionId = ref(route.params.id);
 const stateExchange = useExchangeStateStore();
 const lwChart = ref();
 const chartContainer = ref(null);
@@ -83,7 +86,7 @@ const loadSession = async () => {
         chartLoading.value = false;
         pageLoading.value = false;
     };
-    let session = await sessionService.getSession(TEST_SESSION_ID);
+    let session = await sessionService.getSession(sessionId.value ?? TEST_SESSION_ID);
     if (!session) {
         loadSessionError();
         return;
@@ -113,7 +116,6 @@ const loadSession = async () => {
 };
 
 
-
 const onTimeframeSelect = (value) => {
     console.log('onTimeframeSelect value ', value);
     stateExchange.interval = value;
@@ -139,8 +141,10 @@ const reloadKlineData = () => {
         });
 };
 
-const onClickLoadData = () => {
-
+const onClickSetEntryPoint = () => {
+    lwChart.value.createNewLevel('entry_point_price', {
+        color: '#009900'
+    });
 };
 
 const onClickFindLevel = () => {
@@ -168,10 +172,6 @@ const updateLastBar = () => {
         .finally(() => {});
 };
 
-watch(stateExchange.interval, (value) => {
-    console.log('in watch stateExchange.interval', value);
-});
-
 </script>
 <style scoped>
 .chart-container {
@@ -197,5 +197,4 @@ watch(stateExchange.interval, (value) => {
     font-size: x-large;
     color: #41b883;
 }
-
 </style>

@@ -23,6 +23,9 @@
                         <Button @click="onClickFindLevel2" class="mb-2 mr-2" :label="'Find Level short'"/>
                         <Button @click="onClickHighlightBars" class="mb-2 mr-2" :label="'Highlight Bars'"/>
                     </div>
+                    <div class="text-left">
+                        <Button @click="onClickCreateSession" class="mb-2 mr-2" :label="'Create Session'"/>
+                    </div>
                 </div>
                 <div>
                     <div class="text-right">
@@ -64,8 +67,12 @@ import Spinner from "@/views/components/icons/Spinner";
 import { useExchangeStateStore } from "@/stores/exchange";
 import ButtonsTimeframe from "@/views/components/trading/ButtonsTimeframe.vue";
 import ExchangeService from "@/services/ExchangeService";
+import SessionService from "@/services/SessionService";
 import localStorageService from "@/services/LocalStorageService";
+import { useRouter } from 'vue-router';
 
+
+const router = useRouter();
 const stateExchange = useExchangeStateStore();
 const lwChart = ref();
 const chartContainer = ref(null);
@@ -174,6 +181,14 @@ const reloadKlineData = () => {
         .finally(() => {
             chartLoading.value = false;
         });
+};
+
+const onClickCreateSession = () => {
+    const sessionService = new SessionService();
+    sessionService.createSession(stateExchange.symbol).then((session) => {
+        console.log('session: ', session);
+        router.push(`/page/session/${session.id}`);
+    });
 };
 
 const onClickLoadData = () => {

@@ -1,11 +1,7 @@
 <script>
-import {createChart, LineStyle} from 'lightweight-charts';
-import * as LightweightCharts from "lightweight-charts";
-import stylesConfig from "@/stub/trading/styles";
+import {createChart} from 'lightweight-charts';
+import {getLevelSelectionCrosshair, getDefaultCrosshair, getPriceLineOptions, getMinPriceDecimalPlaces} from "@/helpers/chart";
 import ExchangeService from "@/services/ExchangeService";
-
-
-const tradingStylesConfig = stylesConfig();
 
 let logic;
 let state;
@@ -16,122 +12,53 @@ let markers = [];
 let highlightMarkers = [];
 let isCursorActive = false;
 let timeUnderCursor = 0;
+let priceUnderCursor = 0;
 let levelName = '';
 let levelSide = '';
-let levelOptions = {};
 let levelSnapTo = '';
 let levels = [];
 let cursorPriceLine = undefined;
 let stateMarkets = undefined;
 let stateLevels = undefined;
+let roundDecimalPlaces = undefined;
 
-// start level selection mode, hides crosshair cursor,
-// set price line visible instead of cursor
-// after that you have to stop selection mode and save selected price
-const createNewLevel = (name, options) => {
+// start level selection mode, change cursor,
+// after that you have to stop selection mode and add selected price level
+// using confirmLevelSelection
+const beginLevelSelection = (name) => {
     isCursorActive = true;
     levelName = name;
-    levelOptions = options;
     chart.applyOptions({
-        crosshair: {
-            horzLine: {
-                labelVisible: false,
-                visible: false
-            }
-        },
+        crosshair: getLevelSelectionCrosshair()
     });
 };
 
-// moves (updates) the price line with cross cursor
-// during level selection mode
-function updateLevelPriceLine(ohlcData) {
-    if (cursorPriceLine) {
-        series.removePriceLine(cursorPriceLine);
-        cursorPriceLine = undefined;
-    }
-    cursorPriceLine = series.createPriceLine(
-        getPriceLineOptions(ohlcData)
-    );
-}
-
-function getPriceLineOptions(ohlcData) {
-    let levelPrice = levelOptions.price;
-    if (levelSnapTo) {
-        levelPrice = ohlcData[levelSnapTo];
-    }
-    return {
-        price: levelPrice,
-        color: levelOptions.color || '#3179F5',
-        lineWidth: 1,
-        lineStyle: levelOptions.lineStyle || LineStyle.Dashed, // LineStyle.Dashed
-        axisLabelVisible: true,
-        title: levelName
-    };
-}
-
-// stop level selection mode and save level under cursor
-// makes crosshair cursor visible again
-function saveLevel(ohlcData) {
-    isCursorActive = false;
-    saveLevelPriceLine(ohlcData);
-    updateMarkers(timeUnderCursor, (newMarkers) => {
-        series.setMarkers(newMarkers);
-    });
+const confirmLevelSelection = (price) => {
+    addLevel(levelName, price);
     chart.applyOptions({
-        crosshair: {
-            horzLine: {
-                labelVisible: true,
-                visible: true
-            }
+        crosshair: getDefaultCrosshair()
+    });
+    isCursorActive = false;
+    emit('onLevelSelected', price);
+};
+
+function addLevel(name, price) {
+    let priceLineOptions = getPriceLineOptions(name, price);
+    levels.push({
+        price: price,
+        priceLine: series.createPriceLine(priceLineOptions)
+    });
+}
+
+function removeLevel(price) {
+    levels = levels.filter(level => {
+        if (level.price !== price) {
+            return true;
+        } else {
+            series.removePriceLine(level.priceLine);
+            return false;
         }
     });
-}
-
-const saveLevelPriceLine = (ohlcData) => {
-    if (cursorPriceLine) {
-        series.removePriceLine(cursorPriceLine);
-        cursorPriceLine = undefined;
-    }
-    let priceLineData = getPriceLineOptions(ohlcData);
-    addLevel({
-        price: priceLineData.price,
-        priceLine: series.createPriceLine(priceLineData),
-        markers: [getLevelMarker(ohlcData.time)]
-    });
-}
-
-function addLevel(level) {
-    levels.push(level);
-}
-
-
-
-
-
-function getLevelMarker(time) {
-    let levelMarker = {
-        position: 'belowBar',
-            color: '#559955',
-            shape: 'arrowUp',
-            text: 'LFB'
-    };
-    return {
-        time: time,
-        ...levelMarker
-    };
-}
-
-function getCursorMarker(time) {
-    let cursorMarker = {
-        position: 'belowBar',
-        color: '#f68410',
-        shape: 'arrowUp',
-        text: 'Click to save'
-    };
-    return {
-        time: time,
-        ...cursorMarker
-    };
 }
 
 function highlightLevelBars(price, side, accuracy) {
@@ -154,40 +81,11 @@ function highlightLevelBars(price, side, accuracy) {
     });
 }
 
-function updateMarkers(time, callback) {
-    if (!markers) {
-        markers = [];
-        if (isCursorActive) {
-            markers.push(getCursorMarker(time));
-        }
-        markers.push(...getAllLevelsMarkers());
-        markers.push(...highlightMarkers);
-        if (callback) {
-            callback(markers);
-        }
-    }
-    if (markers) {
-        markers = undefined;
-    }
-}
-
-function getAllLevelsMarkers() {
-    let res = [];
-    levels.forEach(level => {
-        res.push(...level.markers);
-    });
-    return res;
-}
-
 function getLastAddedLevelPrice() {
     if (levels.length) {
         return levels[levels.length - 1].price;
     }
 }
-
-
-
-
 
 const crosshairMoveHandler = param => {
     if (isCursorActive) {
@@ -195,17 +93,12 @@ const crosshairMoveHandler = param => {
             return;
         }
         if (param.time) {
-            levelOptions.price = series.coordinateToPrice(param.point.y);
-            //console.log('param point price: ', levelOptions.price);
+            priceUnderCursor = series.coordinateToPrice(param.point.y);
             const data = param.seriesData.get(series);
             if (levelSnapTo) {
                 if (timeUnderCursor !== data.time) {
                     timeUnderCursor = data.time;
-                    updateMarkers(timeUnderCursor);
-                    updateLevelPriceLine(data);
                 }
-            } else {
-                updateLevelPriceLine(data);
             }
         }
     }
@@ -217,10 +110,11 @@ const chartClickHandler = param => {
             return;
         }
         const data = param.seriesData.get(series);
-        saveLevel(data);
+        priceUnderCursor = series.coordinateToPrice(param.point.y);
+        confirmLevelSelection(priceUnderCursor);
         //console.log(`Click at ${param.point.x}, ${param.point.y}. The time is ${param.time}.`);
     }
-}
+};
 
 const visibleTimeRangeChangeHandler = (range) => {
     if (range) {
@@ -230,7 +124,7 @@ const visibleTimeRangeChangeHandler = (range) => {
             }
         }
     }
-}
+};
 
 const resizeHandler = container => {
     if (!chart || !container) {
@@ -276,20 +170,7 @@ export default {
                 vertLines: { color: '#444' },
                 horzLines: { color: '#444' },
             },
-            crosshair: {
-                mode: LightweightCharts.CrosshairMode.Magnet,
-                vertLine: {
-                    width: 1,
-                    color: '#C3BCDB44',
-                    style: LightweightCharts.LineStyle.Solid,
-                    labelBackgroundColor: '#9B7DFF',
-                },
-                horzLine: {
-                    width: 1,
-                    color: '#C3BCDB44',
-                    style: LightweightCharts.LineStyle.Solid
-                },
-            },
+            crosshair: getDefaultCrosshair(),
             rightPriceScale: {
                 borderColor: '#71649C'
             },
@@ -303,13 +184,14 @@ export default {
         }
         exchangeService.getSymbolMinPrice(this.symbol)
             .then(minPriceValue => {
+                roundDecimalPlaces = getMinPriceDecimalPlaces(minPriceValue);
                 if (!chart) {
                     console.log('chart is null by somereason');
                     return;
                 }
                 series = chart.addBarSeries({
                     //lastValueVisible: false,
-                    priceLineVisible: false,
+                    priceLineVisible: true,
                     color: 'rgb(45, 77, 205)',
                     priceFormat: {
                         type: 'price',
@@ -322,8 +204,8 @@ export default {
                 }
                 chart.timeScale().subscribeVisibleTimeRangeChange( visibleTimeRangeChangeHandler );
                 chart.timeScale().fitContent();
-                chart.subscribeCrosshairMove( crosshairMoveHandler );
-                chart.subscribeClick( chartClickHandler );
+                chart.subscribeCrosshairMove((param) => this.crosshairMoveHandler(param));
+                chart.subscribeClick((param) => this.chartClickHandler(param));
                 window.addEventListener('resize', () =>
                     resizeHandler(this.$refs.chartContainer)
                 );
@@ -353,10 +235,52 @@ export default {
         },
     },
     methods: {
+        removeLevel: removeLevel,
         highlightLevelBars(price, side, accuracy) {
-            highlightLevelBars(price, side, accuracy);
-            updateMarkers(logic.timeUnderCursor, (newMarkers) => {
-                series.setMarkers(newMarkers);
+
+        },
+        crosshairMoveHandler(param) {
+            if (isCursorActive) {
+                if (!param.point && !param.seriesData) {
+                    return;
+                }
+                if (param.point.y) {
+                    priceUnderCursor = series.coordinateToPrice(param.point.y);
+                    this.$emit('onLevelChange', {
+                        price: priceUnderCursor,
+                        name: levelName
+                    });
+                }
+                if (param.time) {
+                    const data = param.seriesData.get(series);
+                    if (levelSnapTo) {
+                        if (timeUnderCursor !== data.time) {
+                            timeUnderCursor = data.time;
+                        }
+                    }
+                }
+            }
+        },
+        chartClickHandler( param ) {
+            if (isCursorActive) {
+                if (!param.point) {
+                    return;
+                }
+                const data = param.seriesData.get(series);
+                priceUnderCursor = series.coordinateToPrice(param.point.y);
+                this.confirmLevelSelection(priceUnderCursor);
+                //console.log(`Click at ${param.point.x}, ${param.point.y}. The time is ${param.time}.`);
+            }
+        },
+        confirmLevelSelection (price) {
+            addLevel(levelName, price);
+            chart.applyOptions({
+                crosshair: getDefaultCrosshair()
+            });
+            isCursorActive = false;
+            this.$emit('onLevelSelected', {
+                price: price,
+                name: levelName
             });
         },
         fitContent() {
@@ -375,11 +299,26 @@ export default {
                 close: lastBar.close,
             });
         },
-        createNewLevel(name, options) {
-            createNewLevel(name, options);
-        },
-        saveLevel() {
-            saveLevel();
+        beginLevelSelection: beginLevelSelection,
+        addLevel: addLevel,
+        setLevels(value) {
+            levels.forEach(level => {
+                if (level.priceLine) {
+                    series.removePriceLine(level.priceLine);
+                }
+            });
+            levels = value;
+            levels.forEach(level => {
+                if (level.price) {
+                    let options = {
+                        price: level.price
+                    };
+                    if (level.options) {
+                        options = level.options;
+                    }
+                    level.priceLine = series.createPriceLine(options);
+                }
+            });
         },
         getLastLevelPrice() {
             return getLastAddedLevelPrice();
@@ -388,7 +327,7 @@ export default {
             return this.$refs.chartContainer.getBoundingClientRect();
         }
     },
-    expose: ['fitContent', 'createNewLevel', 'saveLevel', 'highlightLevelBars', 'getLastLevelPrice', 'getBoundingClientRect', 'setInitialHeight', 'updateLastBar'],
+    expose: ['fitContent', 'beginLevelSelection', 'addLevel', 'setLevels', 'highlightLevelBars', 'getLastLevelPrice', 'getBoundingClientRect', 'setInitialHeight', 'updateLastBar'],
 };
 </script>
 

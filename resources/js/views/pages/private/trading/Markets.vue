@@ -10,7 +10,7 @@
                         </div>
                         <div class="flex-grow price">
                             <h4>price</h4>
-                            <p>{{ stateExchange.lastPrice }}</p>
+                            <p>{{ stateExchange.lastPrice.toFixed(roundDecimalPlaces) }}</p>
                         </div>
                         <div class="flex-grow change-24h">
                             <h4>24h change</h4>
@@ -58,7 +58,7 @@
 </template>
 
 <script setup>
-import {ref, onMounted, onBeforeUnmount, watch} from 'vue';
+import {ref, onMounted, onBeforeUnmount} from 'vue';
 import LWChart from "@/views/components/trading/Chart";
 import Page from "@/views/layouts/Page";
 import Button from "@/views/components/input/Button";
@@ -70,17 +70,19 @@ import ExchangeService from "@/services/ExchangeService";
 import SessionService from "@/services/SessionService";
 import localStorageService from "@/services/LocalStorageService";
 import { useRouter } from 'vue-router';
+import {getMinPriceDecimalPlaces} from "@/helpers/chart";
 
 
 const router = useRouter();
 const stateExchange = useExchangeStateStore();
 const lwChart = ref();
 const chartContainer = ref(null);
-const pageLoading = ref(false);
-const chartLoading = ref(false);
-const marketsLoading = ref(false);
+const pageLoading = ref(true);
+const chartLoading = ref(true);
+const marketsLoading = ref(true);
 let lastBarUpdateInterval;
 const lastBarUpdateTime = 10000;
+let roundDecimalPlaces = undefined;
 
 onMounted(() => {
     const exchangeService = new ExchangeService();
@@ -119,6 +121,13 @@ onMounted(() => {
                                         lastBarUpdateInterval = setInterval(() => {
                                             updateLastBar();
                                         }, lastBarUpdateTime);
+                                        exchangeService.getSymbolMinPrice(stateExchange.symbol)
+                                            .then(minPriceValue => {
+                                                roundDecimalPlaces = getMinPriceDecimalPlaces(minPriceValue);
+                                            })
+                                            .finally(() => {
+                                                pageLoading.value = false;
+                                            });
                                     })
                                     .finally(() => {
                                     });
@@ -128,7 +137,6 @@ onMounted(() => {
                             })
                             .finally(() => {
                                 chartLoading.value = false;
-                                pageLoading.value = false;
                             });
                     })
                     .catch(() => {
@@ -196,11 +204,11 @@ const onClickLoadData = () => {
 };
 
 const onClickFindLevel = () => {
-    lwChart.value.createNewLevel('breakout', 'long');
+    //lwChart.value.createNewLevel('breakout', 'long');
 };
 
 const onClickFindLevel2 = () => {
-    lwChart.value.createNewLevel('breakout', 'short');
+    //lwChart.value.createNewLevel('breakout', 'short');
 };
 
 const onClickHighlightBars = () => {
@@ -252,10 +260,6 @@ const updateLastBar = () => {
         })
         .finally(() => {});
 };
-
-watch(stateExchange.interval, (value) => {
-    console.log('in watch stateExchange.interval', value);
-});
 
 </script>
 <style scoped>

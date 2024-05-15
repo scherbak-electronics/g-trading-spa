@@ -4,10 +4,15 @@
  * */
 namespace App\Models\Exchange\Local;
 
+use App\Contracts\Exchange\KlineInterface;
+use App\Contracts\Exchange\SymbolInterface;
+use App\Contracts\Exchange\TickerInterface;
 use App\Contracts\ExchangeInterface;
 use App\Models\Exchange\Kline;
+use App\Models\Exchange\Futures\Kline as KlineFutures;
 use App\Models\Exchange\Symbol;
 use App\Models\Exchange\Ticker;
+use Illuminate\Database\Eloquent\Builder;
 
 class ExchangeStorage
 {
@@ -17,21 +22,26 @@ class ExchangeStorage
     ];
 
     protected array $klines;
-
+    public function __construct(
+        protected Builder $klineQuery,
+        protected Builder $symbolQuery,
+        protected Builder $tickerQuery
+    ) {
+    }
     public function updateTickers(array $tickers): int
     {
-        return Ticker::query()->upsert($tickers, ['symbol'], self::TICKER_COLUMNS);
+        return $this->tickerQuery->upsert($tickers, ['symbol'], self::TICKER_COLUMNS);
     }
 
     public function getAllTickers(): array
     {
-        $tickers = Ticker::query()->get();
+        $tickers = $this->tickerQuery->get();
         return $tickers->toArray();
     }
 
     public function getTickers(string $quoteAsset, string $sortBy, string $sortDir): array
     {
-        $query = Ticker::query();
+        $query = $this->tickerQuery;
         if (!empty($quoteAsset)) {
             $query->where('symbol', 'like', '%' . $quoteAsset);
             $query->where('last_price', '>', 0);
@@ -46,11 +56,10 @@ class ExchangeStorage
     public function getKlines(string $symbol, string $interval): array
     {
         $this->klines = [];
-        $query = Kline::query();
+        $query = $this->klineQuery;
         $query->where('interval', $interval);
         $query->where('symbol', $symbol);
         $query->orderBy('open_time');
-        //$query->limit(1000);
         $klines = $query->get();
         if (!$klines->isEmpty()) {
             $this->klines = $klines->toArray();
@@ -95,7 +104,7 @@ class ExchangeStorage
         $lastBarFromDb = $this->getLastBar();
         if (!empty($lastBarFromDb)) {
             // update last bar we almost up to date
-            $query = Kline::query();
+            $query = $this->klineQuery;
             // update the last bar from db
             $query->upsert(
                 [$lastBarFromEx],
@@ -106,19 +115,19 @@ class ExchangeStorage
 
     public function updateMissingKlines(array $missingKlines): void
     {
-        $query = Kline::query();
+        $query = $this->klineQuery;
         $query->upsert($missingKlines, ['symbol', 'interval', 'open_time']);
     }
 
     public function createNewKlines(array $klines): void
     {
-        $query = Kline::query();
+        $query = $this->klineQuery;
         $query->insert($klines);
     }
 
     public function getSymbols(string $quoteAsset = null): array
     {
-        $query = Symbol::query();
+        $query = $this->symbolQuery;
         $query->select('symbol');
         $query->where('status', 'TRADING');
         if ($quoteAsset) {
@@ -133,7 +142,7 @@ class ExchangeStorage
 
     public function updateExchangeInfo(array $info): array
     {
-        $querySymbol = Symbol::query();
+        $querySymbol = $this->symbolQuery;
         $symbols = $this->extractSymbols($info);
         $querySymbol->upsert($symbols, ['symbol']);
         return $symbols;
@@ -170,7 +179,7 @@ class ExchangeStorage
 
     protected function getPermissions($symbol): string
     {
-        if ($symbol['permissions'] && is_array($symbol['permissions'])) {
+        if (!empty($symbol['permissions']) && is_array($symbol['permissions'])) {
             return implode(',', $symbol['permissions']);
         }
         return '';
@@ -190,7 +199,7 @@ class ExchangeStorage
 
     public function getSymbolMinPrice(string $symbol): string
     {
-        $query = Symbol::query();
+        $query = $this->symbolQuery;
         $query->select('min_price');
         $query->where('symbol', $symbol);
         $result = $query->first();

@@ -3,73 +3,45 @@
 namespace App\Services\Trading;
 
 use App\Models\Exchange\Order;
+use App\Models\Trading\OrderQueue;
 use App\Models\Trading\OrderQueueItem;
+use App\Services\Exchange\ExchangeOrderService;
 use App\Services\Exchange\ExchangeService;
+use App\Services\Exchange\ExchangeServiceFactory;
 use App\Utilities\Data;
 use Illuminate\Support\Facades\Log;
 
 class OrderQueueService
 {
-    const PROCESSING_STATUSES = ['new'];
-
-    private int $startTime;
-
     public function __construct(
-        protected ExchangeService $exchangeService
-    ) {
-    }
+        private readonly ExchangeOrderService $exchangeOrderService
+    ){}
 
-    public function addOrderById(int $orderId): OrderQueueService
+    public function placeOrder(Order $order, int $sessionId)
     {
-        $query = OrderQueueItem::query();
-        $query->insert([
-            'exchange_order_id' => $orderId,
-            'status' => 'new',
-            'time_ms' => Data::getTimestampInMilliseconds()
+        OrderQueueItem::create([
+            'exchange_order_id' => $order->id,
+            'session_id' => $sessionId,
+            'status' => 'queued'
         ]);
-        return $this;
     }
 
-    public function getNextOrderId(): int
+    public function processQueue($sessionId)
     {
-        return 1;
-    }
+        $queueItems = OrderQueueItem::where('status', 'queued')
+            ->where('session_id', $sessionId)
+            ->get();
 
-    public function process(): void
-    {
-        $this->processStart();
-        $processingItems = $this->getProcessingItems();
-        foreach ($processingItems as $item) {
-            $query = Order::query();
-            $order = $query->find($item['exchange_order_id']);
-            $orderData = $order->toArray();
-            Log::channel('order_queue')->info('Order found. id: ' . $orderData['id']);
-            $query = OrderQueueItem::query();
-            $query->where('id', $item['id']);
-            $query->update(['status' => 'processed']);
+        foreach ($queueItems as $item) {
+            $order = $item->getOrder();
+            $success = $this->exchangeOrderService->sendOrder($order);
+
+            if ($success) {
+                $item->update(['status' => 'sent']);
+            } else {
+                $item->update(['status' => 'failed']);
+                break;
+            }
         }
-        $this->processStop();
-    }
-
-    private function processStart(): void
-    {
-        $this->startTime = microtime(true);
-        Log::channel('order_queue')->info('Order queue items processing start.');
-    }
-
-    private function processStop(): void
-    {
-        $endTime = microtime(true);
-        $executionTime = ($endTime - $this->startTime) * 1000;
-        Log::channel('order_queue')->info('Order queue items processing stop. Exec. time is ' . $executionTime . ' ms.');
-    }
-
-    private function getProcessingItems(): array
-    {
-        $query = OrderQueueItem::query();
-        $query->whereIn('status', self::PROCESSING_STATUSES);
-        $query->orderBy('time_ms', 'desc');
-        $items = $query->get();
-        return $items->toArray();
     }
 }

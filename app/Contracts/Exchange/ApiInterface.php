@@ -22,11 +22,6 @@ interface ApiInterface
         '1w' => 604800000,
         '1M' => 2592000000
     ];
-    public function getKlineData(string $symbol, string $interval, int $startTime, int $endTime, int $limit): array;
-    public function getServerTime(): array;
-    public function getExchangeInfo(string $symbol, string $permissions): array;
-    public function getAllSymbols(string $quoteAsset, string $permissions): array;
-    public function getSymbolInfo(string $symbol): array;
-    public function getTicker24h(string $symbol, array $symbols, string $type): array;
-    public function getOpenOrders(string $symbol): array;
+
+    public function isFutures(): bool;
 }

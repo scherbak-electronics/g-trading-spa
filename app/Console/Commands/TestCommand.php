@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Console\View;
 use Illuminate\Console\Command;
 use App\Models\Variable\Text;
 use App\Models\Variable\BigUInt;
@@ -23,11 +24,14 @@ class TestCommand extends Command
      */
     protected $description = 'For testing';
 
+    protected View $view;
+
     /**
      * Execute the console command.
      */
     public function handle()
     {
+        $this->view = new View($this);
         $this->testVariablesWriteRead();
     }
 

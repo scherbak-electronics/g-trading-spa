@@ -5,19 +5,27 @@ namespace App\Http\Controllers;
 use App\Contracts\TradingLogicInterface;
 use App\Models\AppState;
 use App\Models\Exchange\ActiveSymbol;
+use App\Models\Exchange\Local\ExchangeState;
+use App\Models\Exchange\Local\ExchangeStorage;
 use App\Services\Exchange\ExchangeService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
-
+use App\Services\Exchange\Binance\Api as ApiSpot;
+use App\Services\Exchange\Binance\ApiFutures;
+use App\Services\Exchange\ExchangeServiceFactory;
 
 class ExchangeController extends Controller
 {
+    protected ExchangeService $exchangeService;
     public function __construct(
-        protected readonly ExchangeService $exchangeService,
+        protected readonly ExchangeServiceFactory $exchangeServiceFactory,
         protected readonly AppState $state
     )
-    {}
+    {
+        $isFutures = request()->query('is_futures', false);
+        $this->exchangeService = $exchangeServiceFactory->create($isFutures);
+    }
 
     public function kline(Request $request): JsonResponse
     {

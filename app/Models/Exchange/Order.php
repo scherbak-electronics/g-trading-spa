@@ -12,8 +12,6 @@ class Order extends Model
         'symbol',
         'side',
         'type',
-        'orderId',
-        'clientOrderId',
         'timeInForce',
         'quantity',
         'quoteOrderQty',
@@ -26,7 +24,10 @@ class Order extends Model
         'icebergQty',
         'newOrderRespType',
         'selfTradePreventionMode',
+        'recvWindow',
+        'timestamp',
         'transactTime',
+        'orderId',
         'orderListId',
         'origQty',
         'executedQty',
@@ -34,7 +35,22 @@ class Order extends Model
         'status',
         'workingTime',
         'fills',
+        'positionSide',
+        'reduceOnly',
+        'closePosition',
+        'activatePrice',
+        'callbackRate',
+        'workingType',
+        'priceProtect',
+        'priceMatch',
+        'goodTillDate',
+        'cumQty',
+        'cumQuote',
+        'avgPrice',
+        'origType',
+        'isFutures'
     ];
+
     protected $table = 'exchange_orders';
     public $timestamps = false;
 }

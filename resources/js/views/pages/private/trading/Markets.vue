@@ -5,12 +5,13 @@
                 <div>
                     <div class="flex market-summary mb-2 p-2">
                         <div class="flex-grow symbol">
-                            <h4>market</h4>
+                            <h4 v-if="isFutures">futures</h4>
+                            <h4 v-if="!isFutures">market</h4>
                             <h1>{{ stateExchange.symbol }}</h1>
                         </div>
                         <div class="flex-grow price">
                             <h4>price</h4>
-                            <p>{{ stateExchange.lastPrice.toFixed(roundDecimalPlaces) }}</p>
+                            <p>{{ toFixed(stateExchange.lastPrice) }}</p>
                         </div>
                         <div class="flex-grow change-24h">
                             <h4>24h change</h4>
@@ -69,12 +70,16 @@ import ButtonsTimeframe from "@/views/components/trading/ButtonsTimeframe.vue";
 import ExchangeService from "@/services/ExchangeService";
 import SessionService from "@/services/SessionService";
 import localStorageService from "@/services/LocalStorageService";
-import { useRouter } from 'vue-router';
+import { useRouter, useRoute } from 'vue-router';
 import {getMinPriceDecimalPlaces} from "@/helpers/chart";
 
 
 const router = useRouter();
+const route = useRoute();
+let isFutures = ref(route.params.futures);
 const stateExchange = useExchangeStateStore();
+const exchangeService = new ExchangeService(Boolean(isFutures.value));
+const sessionService = new SessionService();
 const lwChart = ref();
 const chartContainer = ref(null);
 const pageLoading = ref(true);
@@ -84,8 +89,15 @@ let lastBarUpdateInterval;
 const lastBarUpdateTime = 10000;
 let roundDecimalPlaces = undefined;
 
+function toFixed(value) {
+    if (value) {
+        const number = parseFloat(value);
+        return isNaN(number) ? '' : number.toFixed(roundDecimalPlaces);
+    }
+    return '';
+}
+
 onMounted(() => {
-    const exchangeService = new ExchangeService();
     const localStorageMarkets = localStorageService.getItem('markets');
     if (localStorageMarkets?.symbol && localStorageMarkets?.interval) {
         stateExchange.symbol = localStorageMarkets.symbol;
@@ -111,7 +123,7 @@ onMounted(() => {
                     .then((tickers) => {
                         stateExchange.tickers = tickers;
                         marketsLoading.value = false;
-                        exchangeService.getKlineData(stateExchange.symbol, stateExchange.interval)
+                        exchangeService.getKlineData(stateExchange.symbol, stateExchange.interval, false)
                             .then((klineData) => {
                                 stateExchange.topChartData = klineData;
                                 chartLoading.value = false;
@@ -177,8 +189,7 @@ const onTimeframeSelect = (value) => {
 
 const reloadKlineData = () => {
     chartLoading.value = true;
-    const exchangeService = new ExchangeService();
-    exchangeService.getKlineData(stateExchange.symbol, stateExchange.interval)
+    exchangeService.getKlineData(stateExchange.symbol, stateExchange.interval, false)
         .then((klineData) => {
             stateExchange.topChartData = klineData;
             chartLoading.value = false;
@@ -192,7 +203,6 @@ const reloadKlineData = () => {
 };
 
 const onClickCreateSession = () => {
-    const sessionService = new SessionService();
     sessionService.createSession(stateExchange.symbol).then((session) => {
         console.log('session: ', session);
         router.push(`/page/session/${session.id}`);
@@ -236,7 +246,6 @@ const onClickByChange = () => {
 const onClickSortDir = () => {};
 
 const reloadTickers = () => {
-    const exchangeService = new ExchangeService();
     marketsLoading.value = true;
     exchangeService.getTicker24h(
         stateExchange.tickersQuoteAssetFilter,
@@ -250,7 +259,6 @@ const reloadTickers = () => {
 };
 
 const updateLastBar = () => {
-    const exchangeService = new ExchangeService();
     exchangeService.updateLastBar(stateExchange.symbol, stateExchange.interval)
         .then(lastBar => {
             if (lwChart?.value) {

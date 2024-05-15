@@ -74,6 +74,12 @@ const routes = [
         component: PageMarkets,
     },
     {
+        name: "futures",
+        path: "/page/markets/:futures",
+        meta: {requiresAuth: true, title: 'Futures'},
+        component: PageMarkets,
+    },
+    {
         name: "session",
         path: "/page/session/:id",
         meta: {requiresAuth: true, title: 'Session'},

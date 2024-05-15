@@ -13,37 +13,60 @@ use App\Models\Exchange\Ticker;
 
 class Api implements ApiInterface
 {
-    const SECURE_ENDPOINTS = [
-        '/api/v3/order',
-        '/api/v3/openOrders',
-        '/api/v3/order/cancelReplace',
-        '/api/v3/allOrders',
-        '/api/v3/order/oco',
-        '/api/v3/orderList',
-        '/api/v3/allOrderList',
-        '/api/v3/openOrderList',
-        '/api/v3/sor/order',
-        '/api/v3/sor/order/test',
-        '/api/v3/account'
+
+
+    protected string $url = 'https://api.binance.com';
+    protected string $urlGetKlines = '/api/v3/klines';
+    protected string $urlGetTime = '/api/v3/time';
+    protected string $urlGetExchangeInfo = '/api/v3/exchangeInfo';
+    protected string $urlGetTicker24 = '/api/v3/ticker/24hr';
+    protected string $urlGetTickerPrice = '/api/v3/ticker/price';
+    protected string $urlGetOpenOrders = '/api/v3/openOrders';
+    protected string $urlGetAllOrders = '/api/v3/allOrders';
+    protected string $urlCreateOrder = '';
+    protected string $urlGetOrder = '/api/v3/order';
+    protected string $urlGetAccountInformation = '/api/v3/account';
+
+    protected array $secureEndpoints = [
+        '/api/v3/openOrders', '/api/v3/allOrders', '/api/v3/order', '/api/v3/account'
     ];
+
+    protected array $endpoints = [
+        'get_klines' => ['method' => 'GET', 'uri' => '/api/v3/klines', 'is_secure' => false],
+        'get_time' => ['method' => 'GET', 'uri' => '/api/v3/time', 'is_secure' => false],
+        'get_exchange_info' => ['method' => 'GET', 'uri' => '/api/v3/exchangeInfo', 'is_secure' => false],
+        'get_ticker24' => ['method' => 'GET', 'uri' => '/api/v3/ticker/24hr', 'is_secure' => false],
+        'get_ticker_price' => ['method' => 'GET', 'uri' => '/api/v3/ticker/price', 'is_secure' => false],
+        'get_all_orders' => ['method' => 'GET', 'uri' => '/api/v3/allOrders', 'is_secure' => true],
+        'get_open_orders' => ['method' => 'GET', 'uri' => '/api/v3/openOrders', 'is_secure' => true],
+        'create_order' => ['method' => 'POST', 'uri' => '/api/v3/order', 'is_secure' => true],
+        'get_order' => ['method' => 'GET', 'uri' => '/api/v3/order', 'is_secure' => true],
+        'get_account_info' => ['method' => 'GET', 'uri' => '/api/v3/account', 'is_secure' => true]
+    ];
+
     protected Client $client;
     protected APIClientSecure $clientSecure;
 
     public function __construct(protected ExchangeState $state)
     {
         $this->client = new Client([
-            'base_uri' => 'https://api.binance.com',
+            'base_uri' => $this->url,
         ]);
         $this->clientSecure = new APIClientSecure([
-            'baseURL'   => 'https://api.binance.com', // API base URL
-            'key'   => env('BINANCE_API_KEY'),    // API Key
-            'secret' => env('BINANCE_SECRET'),    // API Secret
+            'baseURL'   => $this->url,
+            'key'   => env('BINANCE_API_KEY'),
+            'secret' => env('BINANCE_SECRET'),
         ]);
+    }
+
+    public function isFutures(): bool
+    {
+        return false;
     }
 
     public function getKlineData(string $symbol, string $interval, int $startTime = null, int $endTime = null, int $limit = null): array
     {
-        $klinesRaw = $this->request('GET', '/api/v3/klines', [
+        $klinesRaw = $this->request($this->endpoints['get_klines'], [
             'symbol' => $symbol,
             'interval' => $interval,
             'startTime' => $startTime,
@@ -74,7 +97,7 @@ class Api implements ApiInterface
 
     public function getServerTime(): array
     {
-        $response = $this->request('GET', '/api/v3/time');
+        $response = $this->request($this->endpoints['get_time']);
         if (empty($response)) {
             return [];
         }
@@ -83,28 +106,16 @@ class Api implements ApiInterface
 
     public function getExchangeInfo(string $symbol = null, string $permissions = null): array
     {
-        $response = $this->request('GET', '/api/v3/exchangeInfo');
+        $response = $this->request($this->endpoints['get_exchange_info']);
         if (empty($response)) {
             return [];
         }
         return $response;
     }
 
-    public function getAllSymbols(string $quoteAsset, string $permissions): array
+    public function getTicker24h(): array
     {
-        // TODO: Implement getAllSymbols() method.
-        return [];
-    }
-
-    public function getSymbolInfo(string $symbol): array
-    {
-        // TODO: Implement getSymbolInfo() method.
-        return [];
-    }
-
-    public function getTicker24h(string $symbol = null, array $symbols = [], string $type = 'FULL'): array
-    {
-        $tickers = $this->request('GET', '/api/v3/ticker/24hr');
+        $tickers = $this->request($this->endpoints['get_ticker24']);
         if (empty($tickers)) {
             return [];
         }
@@ -121,7 +132,7 @@ class Api implements ApiInterface
 
         return $res;
     }
-    
+
     public function getLastBar(string $symbol, string $interval): array
     {
         $klines = $this->getKlineData($symbol, $interval, null, null, 1);
@@ -131,14 +142,10 @@ class Api implements ApiInterface
         return $klines[0];
     }
 
-    public function getPriceTicker(string $symbol = null, array $symbols = []): array
+    public function getPriceTicker(string $symbol = null): array
     {
-        if (empty($symbols)) {
-            $symbols = null;
-        }
-        $response = $this->request('GET', '/api/v3/ticker/price', [
-            'symbol' => $symbol,
-            'symbols' => $symbols
+        $response = $this->request($this->endpoints['get_ticker_price'], [
+            'symbol' => $symbol
         ]);
         if (!$response) {
             return [];
@@ -146,9 +153,7 @@ class Api implements ApiInterface
         return $response;
     }
 
-
-
-    private function request(string $method, string $uri, array $params = []): null | array
+    protected function request(array $endpoint, array $params = []): null | array
     {
         $tries = 100;
         for ($i = $tries; $i >= 0; $i--) {
@@ -167,7 +172,7 @@ class Api implements ApiInterface
         }
         $lastRequestTime = $this->state->getLastRequestTime();
         if ($lastRequestTime) {
-            $tries = 10;
+            $tries = 50;
             $timeMargin = 200;
             for ($i = $tries; $i >= 0; $i--) {
                 if ($i == 0) {
@@ -183,10 +188,14 @@ class Api implements ApiInterface
         }
         $response = null;
         try {
-            if ($this->isEndpointSecure($uri)) {
-                $response = $this->clientSecure->signRequest($method, $uri, $params);
+            if ($endpoint['is_secure']) {
+                $response = $this->clientSecure->signRequest($endpoint['method'], $endpoint['uri'], $params);
             } else {
-                $responseInterface = $this->client->request($method, $uri, ['query' => $params]);
+                $responseInterface = $this->client->request($endpoint['method'], $endpoint['uri'], ['query' => $params]);
+                if ($endpoint['uri'] === $this->endpoints['get_exchange_info']) {
+                    Log::channel('exchange_info')->info($responseInterface->getBody());
+                }
+
                 $response = json_decode($responseInterface->getBody(), true);
             }
         } catch (GuzzleException $e) {
@@ -202,21 +211,13 @@ class Api implements ApiInterface
         return $response;
     }
 
-    private function isEndpointSecure(string $endpoint = ''): bool
-    {
-        if (in_array($endpoint, self::SECURE_ENDPOINTS)) {
-            return true;
-        }
-        return false;
-    }
-
     public function getOpenOrders(string $symbol = ''): array
     {
         $params = [];
         if (!empty($symbol)) {
             $params['symbol'] = $symbol;
         }
-        $response = $this->request('GET', '/api/v3/openOrders', $params);
+        $response = $this->request($this->endpoints['get_open_orders'], $params);
         if (empty($response)) {
             return [];
         }
@@ -243,7 +244,7 @@ class Api implements ApiInterface
         if (!empty($limit)) {
             $params['limit'] = $limit;
         }
-        $response = $this->request('GET', '/api/v3/allOrders', $params);
+        $response = $this->request($this->endpoints['get_all_orders'], $params);
         if (empty($response)) {
             return [];
         }
@@ -262,7 +263,7 @@ class Api implements ApiInterface
                 $params[$fieldName] = $order->$fieldName;
             }
         }
-        $response = $this->request('POST', '/api/v3/allOrders', $params);
+        $response = $this->request($this->endpoints['create_order'], $params);
         if (empty($response)) {
             return [];
         }
@@ -282,7 +283,17 @@ class Api implements ApiInterface
         } else {
             $params['origClientOrderId'] = $origClientOrderId;
         }
-        $response = $this->request('GET', '/api/v3/order', $params);
+        $response = $this->request($this->endpoints['get_order'], $params);
+        if (empty($response)) {
+            return [];
+        }
+        return $response;
+    }
+
+    public function getAccountInformation($omitZeroBalances = true): array
+    {
+        $params['omitZeroBalances'] = $omitZeroBalances;
+        $response = $this->request($this->endpoints['get_account_info'], $params);
         if (empty($response)) {
             return [];
         }

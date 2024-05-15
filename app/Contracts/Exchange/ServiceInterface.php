@@ -27,6 +27,6 @@ interface ServiceInterface
     public function getAllSymbols(string $quoteAsset): array;
     public function getSymbolInfo(string $symbol): array;
     public function getTicker24h(string $quoteAsset, string $sortByField, string $sortDir): array;
-    public function getPriceTicker(string $symbol, array $symbols): array;
+    public function getPriceTicker(string $symbol): array;
     public function updateAndGetLastBar(string $symbol, string $interval): array;
 }

@@ -6,17 +6,17 @@ use App\Models\AppLogic;
 use App\Models\Exchange\Local\ExchangeState;
 use App\Models\Exchange\Local\ExchangeStorage;
 use App\Models\AppState;
+use App\Models\Exchange\Local\ExchangeStorageFactory;
 use App\Models\Variable\BigUInt;
 use App\Models\Variable\Text;
-use App\Services\Exchange\Binance\Api as BinanceApi;
+use App\Services\Exchange\Binance\Api as ApiSpot;
+use App\Services\Exchange\Binance\ApiFutures;
 use App\Services\Exchange\ExchangeService;
 use App\Services\Trading\OrderQueueService;
 use App\Services\Trading\PriceWatchService;
 use App\Services\Trading\SessionService;
 use Illuminate\Support\ServiceProvider;
 use App\Models\Trading\Logic;
-
-
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -38,38 +38,14 @@ class AppServiceProvider extends ServiceProvider
                 new Text()
             );
         });
-        $this->app->bind(BinanceApi::class, function ($app) {
-            return new BinanceApi(
+        $this->app->bind(ApiSpot::class, function ($app) {
+            return new ApiSpot(
                 $this->app->make(ExchangeState::class)
             );
         });
-        $this->app->bind(ExchangeService::class, function ($app) {
-            return new ExchangeService(
-                $this->app->make(BinanceApi::class),
-                $this->app->make(ExchangeState::class),
-                new ExchangeStorage()
-            );
-        });
-        $this->app->bind(OrderQueueService::class, function ($app) {
-            return new OrderQueueService(
-                $this->app->make(ExchangeService::class)
-            );
-        });
-        $this->app->bind(PriceWatchService::class, function ($app) {
-            return new PriceWatchService(
-                $this->app->make(ExchangeService::class)
-            );
-        });
-        $this->app->bind(Logic::class, function ($app) {
-            return new Logic(
-                $this->app->make(SessionService::class)
-            );
-        });
-        $this->app->bind(AppLogic::class, function ($app) {
-            return new AppLogic(
-                $this->app->make(AppState::class),
-                new ExchangeStorage(),
-                $this->app->make(Logic::class)
+        $this->app->bind(ApiFutures::class, function ($app) {
+            return new ApiFutures(
+                $this->app->make(ExchangeState::class)
             );
         });
     }

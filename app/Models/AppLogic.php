@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Models\Exchange\ActiveSymbol;
 use App\Models\Exchange\Local\ExchangeStorage;
+use App\Models\Exchange\Local\ExchangeStorageFactory;
 use App\Models\Exchange\Ticker;
 use App\Models\Variable\Text;
 use App\Services\Trading\SessionService;
@@ -11,12 +12,19 @@ use App\Models\Trading\Logic;
 
 class AppLogic
 {
+    protected readonly ExchangeStorage $exchangeStorage;
+    protected Logic $tradingLogic;
     public function __construct(
         protected readonly AppState $state,
-        protected readonly ExchangeStorage $exchangeStorage,
-        protected readonly Logic $tradingLogic
-    ){}
+        protected readonly ExchangeStorageFactory $exchangeStorageFactory
+    ){
+        $this->exchangeStorage = $exchangeStorageFactory->create();
+    }
 
+    public function setTradingLogic($logic)
+    {
+        $this->tradingLogic = $logic;
+    }
     public function handleSocketMessage(array $msg): array
     {
         $result = [];

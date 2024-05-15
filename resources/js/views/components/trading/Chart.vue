@@ -22,100 +22,6 @@ let stateMarkets = undefined;
 let stateLevels = undefined;
 let roundDecimalPlaces = undefined;
 
-// start level selection mode, change cursor,
-// after that you have to stop selection mode and add selected price level
-// using confirmLevelSelection
-const beginLevelSelection = (name) => {
-    isCursorActive = true;
-    levelName = name;
-    chart.applyOptions({
-        crosshair: getLevelSelectionCrosshair()
-    });
-};
-
-const confirmLevelSelection = (price) => {
-    addLevel(levelName, price);
-    chart.applyOptions({
-        crosshair: getDefaultCrosshair()
-    });
-    isCursorActive = false;
-    emit('onLevelSelected', price);
-};
-
-function addLevel(name, price) {
-    let priceLineOptions = getPriceLineOptions(name, price);
-    levels.push({
-        price: price,
-        priceLine: series.createPriceLine(priceLineOptions)
-    });
-}
-
-function removeLevel(price) {
-    levels = levels.filter(level => {
-        if (level.price !== price) {
-            return true;
-        } else {
-            series.removePriceLine(level.priceLine);
-            return false;
-        }
-    });
-}
-
-function highlightLevelBars(price, side, accuracy) {
-    highlightMarkers = [];
-    let levelMarker = {
-        position: 'belowBar',
-        color: '#559955',
-        shape: 'arrowUp',
-        text: 'LFB'
-    };
-    stateMarkets.topChartData.forEach(item => {
-        let maxDiff = 100;
-        let itemPriceDiff = Math.abs(price - item.high);
-        if (itemPriceDiff < maxDiff) {
-            highlightMarkers.push({
-                time: item.time,
-                ...levelMarker
-            });
-        }
-    });
-}
-
-function getLastAddedLevelPrice() {
-    if (levels.length) {
-        return levels[levels.length - 1].price;
-    }
-}
-
-const crosshairMoveHandler = param => {
-    if (isCursorActive) {
-        if (!param.point && !param.seriesData) {
-            return;
-        }
-        if (param.time) {
-            priceUnderCursor = series.coordinateToPrice(param.point.y);
-            const data = param.seriesData.get(series);
-            if (levelSnapTo) {
-                if (timeUnderCursor !== data.time) {
-                    timeUnderCursor = data.time;
-                }
-            }
-        }
-    }
-};
-
-const chartClickHandler = param => {
-    if (isCursorActive) {
-        if (!param.point) {
-            return;
-        }
-        const data = param.seriesData.get(series);
-        priceUnderCursor = series.coordinateToPrice(param.point.y);
-        confirmLevelSelection(priceUnderCursor);
-        //console.log(`Click at ${param.point.x}, ${param.point.y}. The time is ${param.time}.`);
-    }
-};
-
 const visibleTimeRangeChangeHandler = (range) => {
     if (range) {
         if (state) {
@@ -209,6 +115,7 @@ export default {
                 window.addEventListener('resize', () =>
                     resizeHandler(this.$refs.chartContainer)
                 );
+                this.$emit('onChartReady');
             });
     },
     unmounted() {
@@ -235,9 +142,22 @@ export default {
         },
     },
     methods: {
-        removeLevel: removeLevel,
-        highlightLevelBars(price, side, accuracy) {
-
+        beginLevelSelection(name) {
+            isCursorActive = true;
+            levelName = name;
+            chart.applyOptions({
+                crosshair: getLevelSelectionCrosshair()
+            });
+        },
+        removeLevel(name) {
+            levels = levels.filter(level => {
+                if (level.name === name) {
+                    series.removePriceLine(level.priceLine);
+                    return false;
+                } else {
+                    return true;
+                }
+            });
         },
         crosshairMoveHandler(param) {
             if (isCursorActive) {
@@ -273,15 +193,22 @@ export default {
             }
         },
         confirmLevelSelection (price) {
-            addLevel(levelName, price);
+            this.removeLevel(levelName);
+            this.addLevel(levelName, price);
             chart.applyOptions({
                 crosshair: getDefaultCrosshair()
             });
             isCursorActive = false;
             this.$emit('onLevelSelected', {
-                price: price,
-                name: levelName
+                name: levelName,
+                price: price
             });
+        },
+        cancelSelection() {
+            chart.applyOptions({
+                crosshair: getDefaultCrosshair()
+            });
+            isCursorActive = false;
         },
         fitContent() {
             if (!chart) {
@@ -299,8 +226,14 @@ export default {
                 close: lastBar.close,
             });
         },
-        beginLevelSelection: beginLevelSelection,
-        addLevel: addLevel,
+        addLevel(name, price) {
+            let priceLineOptions = getPriceLineOptions(name, price);
+            levels.push({
+                name: name,
+                price: price,
+                priceLine: series.createPriceLine(priceLineOptions)
+            });
+        },
         setLevels(value) {
             levels.forEach(level => {
                 if (level.priceLine) {
@@ -310,9 +243,7 @@ export default {
             levels = value;
             levels.forEach(level => {
                 if (level.price) {
-                    let options = {
-                        price: level.price
-                    };
+                    let options = getPriceLineOptions(level.name, level.price);
                     if (level.options) {
                         options = level.options;
                     }
@@ -320,14 +251,11 @@ export default {
                 }
             });
         },
-        getLastLevelPrice() {
-            return getLastAddedLevelPrice();
-        },
         getBoundingClientRect() {
             return this.$refs.chartContainer.getBoundingClientRect();
         }
     },
-    expose: ['fitContent', 'beginLevelSelection', 'addLevel', 'setLevels', 'highlightLevelBars', 'getLastLevelPrice', 'getBoundingClientRect', 'setInitialHeight', 'updateLastBar'],
+    expose: ['fitContent', 'beginLevelSelection', 'addLevel', 'setLevels', 'removeLevel', 'cancelSelection', 'getBoundingClientRect', 'setInitialHeight', 'updateLastBar'],
 };
 </script>
 

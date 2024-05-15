@@ -2,10 +2,12 @@
 
 namespace App\Services\Exchange;
 
+use App\Contracts\Exchange\ApiInterface;
 use App\Contracts\Exchange\ServiceInterface as ExchangeServiceInterface;
 use App\Http\Resources\SymbolsResource;
 use App\Models\Exchange\Local\ExchangeState;
 use App\Models\Exchange\Local\ExchangeStorage;
+use App\Models\Exchange\Order;
 use App\Models\Exchange\Symbol;
 use App\Services\Exchange\Binance\Api;
 use App\Utilities\Data;
@@ -13,15 +15,19 @@ use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class ExchangeService implements ExchangeServiceInterface
 {
-    public const TIME_MS_TICKER24_UPDATE_TIME = 1000 * 60 * 60 * 24;
-    public const TIME_MS_EXCHANGE_INFO_UPDATE_TIME = 1000 * 60 * 60 * 24 * 7;
+    public const TIME_MS_TICKER24_UPDATE_TIME = 1000 * 60; // 1 min
+    public const TIME_MS_EXCHANGE_INFO_UPDATE_TIME = 1000 * 60 * 2; // 2 mins
     public function __construct(
-        protected Api           $api,
+        protected ApiInterface $api,
         protected ExchangeState $state,
         protected ExchangeStorage $db
     ) {
     }
 
+    public function isFutures(): bool
+    {
+        return $this->api->isFutures();
+    }
     public function getKlineData(string $symbol, string $interval): array
     {
         $lastBar = $this->api->getLastBar($symbol, $interval);
@@ -76,9 +82,41 @@ class ExchangeService implements ExchangeServiceInterface
         return $this->db->getAllTickers();
     }
 
-    public function getPriceTicker(string $symbol = null, array $symbols = []): array
+    public function getPriceTicker(string $symbol = null): array
     {
-        return $this->api->getPriceTicker($symbol, $symbols);
+        return $this->api->getPriceTicker($symbol);
+    }
+
+    public function getLastPrice(string $symbol): float
+    {
+        $ticker = $this->getPriceTicker($symbol);
+        if (empty($ticker)) {
+            return 0;
+        }
+        return floatval($ticker['price']);
+    }
+
+    public function calculateOrderQuantity($symbol, $balance, $percentToSpend): float {
+        $info = $this->api->getExchangeInfo();
+        if ($info['symbols'] && is_array($info['symbols'])) {
+            foreach ($info['symbols'] as $symbolInfo) {
+                if ($symbolInfo['symbol'] === $symbol) {
+                    foreach ($symbolInfo['filters'] as $filter) {
+                        if ($filter['filterType'] === 'MARKET_LOT_SIZE') {
+                            $stepSize = $filter['stepSize'];
+                            $precision = intval(-log10((float)$stepSize));
+                            $amountToSpend = ($balance * $percentToSpend) / 100;
+                            $currentPrice = $this->getLastPrice($symbol);
+                            if ($currentPrice > 0) {
+                                $quantity = $amountToSpend / $currentPrice;
+                                return round($quantity - fmod($quantity, (float)$stepSize), $precision);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return 0;
     }
 
     public function getSymbols($data): AnonymousResourceCollection
@@ -141,5 +179,77 @@ class ExchangeService implements ExchangeServiceInterface
     public function getOrder(string $symbol, int $orderId = null, string $origClientOrderId = ''): array
     {
         return $this->api->getOrder($symbol, $orderId, $origClientOrderId);
+    }
+
+    public function getBalance($symbol, $isFutures = false)
+    {
+        return $this->api->getBalance();
+    }
+
+    public function getFuturesBalance(string $asset = 'USDT')
+    {
+        if ($this->isFutures()) {
+            $response = $this->api->getBalance();
+            if (!empty($response)) {
+                foreach ($response as $item) {
+                    if ($item['asset'] == $asset) {
+                        return floatval($item['balance']);
+                    }
+                }
+            }
+        }
+        return 0;
+    }
+
+    public function setFuturesLeverage($symbol, $leverage)
+    {
+        if ($this->isFutures()) {
+            $this->api->setLeverage($symbol, $leverage);
+        }
+    }
+
+    public function setFuturesMarginType(string $symbol, string $marginType)
+    {
+        if ($this->isFutures()) {
+            $this->api->setMarginType($symbol, $marginType);
+        }
+    }
+
+    public function getAccountInformation()
+    {
+
+    }
+
+    public function getMarginTypeAndLeverage(string $symbol): array
+    {
+        if ($this->api->isFutures()) {
+            $info = $this->api->getAccountInformation();
+            if (!empty($info) && !empty($info['positions'])) {
+                if (is_array($info['positions'])) {
+                    foreach ($info['positions'] as $position) {
+                        if ($position['symbol'] == $symbol) {
+                            return [
+                                'marginType' => $position['isolated'] ? 'ISOLATED' : 'CROSSED',
+                                'leverage' => intval($position['leverage']),
+                            ];
+                        }
+                    }
+                }
+            }
+        }
+        return [];
+    }
+
+    public function placeOrder(Order $order): array
+    {
+        return $this->api->createOrder($order);
+    }
+
+    public function getListenKey()
+    {
+        if ($this->api->isFutures()) {
+            return $this->api->getListenKey();
+        }
+        return '';
     }
 }

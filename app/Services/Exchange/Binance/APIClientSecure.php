@@ -12,6 +12,7 @@ class APIClientSecure extends APIClient
 
     public function signRequest($method, $path, array $params = [])
     {
+        $params['recvWindow'] = 60000;
         return parent::signRequest($method, $path, $params);
     }
 }

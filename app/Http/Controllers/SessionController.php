@@ -17,6 +17,12 @@ class SessionController extends Controller
     public function store(CreateSessionRequest $request): JsonResponse
     {
         $validatedData = $request->validated();
+        $userId = auth()->id();
+        if (empty($userId)) {
+            $data = [];
+            return response()->json($data);
+        }
+        $validatedData['user_id'] = $userId;
         $session = $this->sessionService->create($validatedData);
         $data = ['new_session' => $session];
         ActiveSymbol::setActiveSymbol($validatedData['symbol']);
@@ -27,7 +33,6 @@ class SessionController extends Controller
     {
         $validatedData = $request->validated();
         $session->update($validatedData);
-        //$session = $this->sessionService->update($validatedData);
         $data = ['session' => 'ok'];
         return response()->json($data);
     }

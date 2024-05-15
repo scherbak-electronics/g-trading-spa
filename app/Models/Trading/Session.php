@@ -28,7 +28,12 @@ class Session extends Model
         'small_timeframe',
         'big_timeframe',
         'current_timeframe',
-        'side'
+        'side',
+        'is_futures',
+        'leverage',
+        'marginType',
+        'quantity',
+        'status'
     ];
     protected $table = 'sessions';
 }

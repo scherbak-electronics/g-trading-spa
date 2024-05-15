@@ -1,14 +1,22 @@
 import ModelService from "@/services/ModelService";
 
 export default class ExchangeService extends ModelService {
-    constructor() {
+    private readonly isFutures: boolean;
+    constructor(isFutures:boolean) {
         super();
         this.url = '/trading/exchange';
+        this.isFutures = isFutures;
     }
 
     public async getKlineData(symbol:string, interval:string) {
-        let params = `?symbol=${symbol}&interval=${interval}`;
-        const response = await this.get(this.url + `/kline/` + params);
+        let params = {
+            symbol,
+            interval,
+            is_futures: this.isFutures ? this.isFutures : null
+        };
+        //`?symbol=${symbol}&interval=${interval}&is_futures=${this.isFutures}`;
+
+        const response = await this.get(this.url + `/kline/`, { params });
         if (response?.data?.kline_data) {
             return response.data.kline_data.map(item => {
                 return {
@@ -59,26 +67,23 @@ export default class ExchangeService extends ModelService {
     }
 
     public async getTicker24h(quoteAsset:string, sortBy:string, sortDir:string) {
-        let params:string = '';
-        if (quoteAsset || sortBy || sortDir) {
-            params += '?';
-        }
-        if (quoteAsset) {
-            params += `quoteAsset=${quoteAsset}`;
-        }
-        if (sortBy) {
-            if (quoteAsset) {
-                params += '&';
-            }
-            params += `sortBy=${sortBy}`;
-        }
-        if (sortDir) {
-            if (quoteAsset || sortBy) {
-                params += '&';
-            }
-            params += `sortDir=${sortDir}`;
-        }
-        const response = await this.get(this.url + '/ticker24h/' + params);
+        let params = {
+            quoteAsset: quoteAsset ? quoteAsset : null,
+            sortBy: sortBy ? sortBy : null,
+            sortDir: sortDir ? sortDir : null,
+            is_futures: this.isFutures ? this.isFutures : null
+        };//`?is_futures=${this.isFutures}`;
+
+        // if (quoteAsset) {
+        //     params += `&quoteAsset=${quoteAsset}`;
+        // }
+        // if (sortBy) {
+        //     params += `&sortBy=${sortBy}`;
+        // }
+        // if (sortDir) {
+        //     params += `&sortDir=${sortDir}`;
+        // }
+        const response = await this.get(this.url + '/ticker24h/', { params });
         if (response?.data?.ticker24h) {
             return response.data.ticker24h;
         }
@@ -87,7 +92,12 @@ export default class ExchangeService extends ModelService {
 
     public async updateLastBar(symbol:string, interval:string)  {
         if (symbol && interval) {
-            const response = await this.get(this.url + `/updateLastBar/?symbol=${symbol}&interval=${interval}`);
+            let params = {
+                symbol,
+                interval,
+                is_futures: this.isFutures ? this.isFutures : null
+            };
+            const response = await this.get(this.url + `/updateLastBar/`, { params });
 
             if (response?.data?.last_bar) {
                 return response.data.last_bar;
@@ -97,7 +107,11 @@ export default class ExchangeService extends ModelService {
     }
 
     public async getLastPrice(symbol:string) {
-        let response = await this.get(this.url + `/priceTicker/?symbol=${symbol}`);
+        let params = {
+            symbol,
+            is_futures: this.isFutures ? this.isFutures : null
+        };
+        let response = await this.get(this.url + `/priceTicker/`, { params });
         if (response?.data?.ticker) {
             return response.data.ticker.price;
         }
@@ -105,7 +119,10 @@ export default class ExchangeService extends ModelService {
     }
 
     public async updateExchangeInfo() {
-        let response = await this.get(this.url + `/updateExchangeInfo/`);
+        let params = {
+            is_futures: this.isFutures ? this.isFutures : null
+        };
+        let response = await this.get(this.url + `/updateExchangeInfo/`, { params });
         if (response?.data?.result) {
             return response.data.result;
         }
@@ -114,7 +131,11 @@ export default class ExchangeService extends ModelService {
 
     public async getSymbolMinPrice(symbol:string)  {
         if (symbol) {
-            const response = await this.get(this.url + `/getSymbolMinPrice/?symbol=${symbol}`);
+            let params = {
+                symbol,
+                is_futures: this.isFutures ? this.isFutures : null
+            };
+            const response = await this.get(this.url + `/getSymbolMinPrice/`, { params });
 
             if (response?.data?.min_price) {
                 return response.data.min_price;
@@ -125,7 +146,11 @@ export default class ExchangeService extends ModelService {
 
     public async getOpenOrders(symbol:string)  {
         if (symbol) {
-            const response = await this.get(this.url + `/getOpenOrders/?symbol=${symbol}`);
+            let params = {
+                symbol,
+                is_futures: this.isFutures ? this.isFutures : null
+            };
+            const response = await this.get(this.url + `/getOpenOrders/`, { params });
 
             if (response?.data?.open_orders) {
                 return response.data.open_orders;
@@ -135,22 +160,17 @@ export default class ExchangeService extends ModelService {
     }
 
     public async getAllOrders(symbol:string, orderId:string, startTime:string, endTime:string, limit:string)  {
-        let params = '';
         if (symbol) {
-            params += `?symbol=${symbol}`;
-            if (orderId) {
-                params += `&orderId=${orderId}`;
-            }
-            if (startTime) {
-                params += `&startTime=${startTime}`;
-            }
-            if (endTime) {
-                params += `&endTime=${endTime}`;
-            }
-            if (limit) {
-                params += `&limit=${limit}`;
-            }
-            const response = await this.get(this.url + '/getAllOrders/' + params);
+            let params = {
+                symbol,
+                orderId: orderId ? orderId : null,
+                startTime: startTime ? startTime : null,
+                endTime: endTime ? endTime : null,
+                limit: limit ? limit : null,
+                is_futures: this.isFutures ? this.isFutures : null
+            };
+
+            const response = await this.get(this.url + '/getAllOrders/', { params });
 
             if (response?.data?.all_orders) {
                 return response.data.all_orders;
@@ -160,16 +180,15 @@ export default class ExchangeService extends ModelService {
     }
 
     public async getOrder(symbol:string, orderId:string, origClientOrderId:string)  {
-        let params = '';
         if (symbol && (orderId || origClientOrderId)) {
-            params += `?symbol=${symbol}`;
-            if (orderId) {
-                params += `&orderId=${orderId}`;
-            } else {
-                params += `&origClientOrderId=${origClientOrderId}`;
-            }
+            let params = {
+                symbol,
+                orderId: orderId ? orderId : null,
+                origClientOrderId: origClientOrderId ? origClientOrderId : null,
+                is_futures: this.isFutures ? this.isFutures : null
+            };
 
-            const response = await this.get(this.url + '/getOrder/' + params);
+            const response = await this.get(this.url + '/getOrder/', { params });
 
             if (response?.data?.order) {
                 return response.data.order;

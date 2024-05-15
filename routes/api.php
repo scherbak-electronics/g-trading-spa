@@ -61,7 +61,7 @@ Route::middleware(['auth:sanctum', 'apply_locale'])->group(function () {
 
     Route::resource('homework', HomeworkController::class);
     Route::resource('trading/session', SessionController::class)->only(['store', 'update']);
-    Route::patch('trading/session/update/{session}', [SessionController::class, 'update']);
+    //Route::patch('trading/session/update/{session}', [SessionController::class, 'update']);
     Route::patch('trading/session/{session}/start', [SessionController::class, 'start']);
     Route::patch('trading/session/{session}/stop', [SessionController::class, 'stop']);
 });

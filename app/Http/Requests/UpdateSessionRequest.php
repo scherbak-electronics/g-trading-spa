@@ -6,22 +6,15 @@ use Illuminate\Foundation\Http\FormRequest;
 
 class UpdateSessionRequest extends FormRequest
 {
-    /**
-     * Determine if the user is authorized to make this request.
-     */
     public function authorize(): bool
     {
         return true;
     }
 
-    /**
-     * Get the validation rules that apply to the request.
-     *
-     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array|string>
-     */
     public function rules(): array
     {
         return [
+            'state' => 'nullable|in:new,running,stopped,completed',
             'strategy_code' => 'nullable',
             'total_investment' => 'nullable',
             'total_profit' => 'nullable',

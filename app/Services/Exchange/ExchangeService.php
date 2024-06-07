@@ -17,6 +17,7 @@ class ExchangeService implements ExchangeServiceInterface
 {
     public const TIME_MS_TICKER24_UPDATE_TIME = 1000 * 60; // 1 min
     public const TIME_MS_EXCHANGE_INFO_UPDATE_TIME = 1000 * 60 * 2; // 2 mins
+    protected array $info;
     public function __construct(
         protected ApiInterface $api,
         protected ExchangeState $state,
@@ -96,9 +97,14 @@ class ExchangeService implements ExchangeServiceInterface
         return floatval($ticker['price']);
     }
 
-    public function calculateOrderQuantity($symbol, $balance, $percentToSpend): float {
-        $info = $this->api->getExchangeInfo();
-        if ($info['symbols'] && is_array($info['symbols'])) {
+    public function calculateOrderQuantity($symbol, $balance, $percentToSpend, $isInBaseAsset = true): float
+    {
+        if (empty($this->info)) {
+            $this->info = $this->api->getExchangeInfo();
+        }
+        $info = $this->info;
+
+        if (!empty($info['symbols']) && is_array($info['symbols'])) {
             foreach ($info['symbols'] as $symbolInfo) {
                 if ($symbolInfo['symbol'] === $symbol) {
                     foreach ($symbolInfo['filters'] as $filter) {
@@ -109,6 +115,9 @@ class ExchangeService implements ExchangeServiceInterface
                             $currentPrice = $this->getLastPrice($symbol);
                             if ($currentPrice > 0) {
                                 $quantity = $amountToSpend / $currentPrice;
+                                if (!$isInBaseAsset) {
+                                    $quantity *= $currentPrice; // Convert to quote asset quantity
+                                }
                                 return round($quantity - fmod($quantity, (float)$stepSize), $precision);
                             }
                         }
@@ -117,6 +126,96 @@ class ExchangeService implements ExchangeServiceInterface
             }
         }
         return 0;
+    }
+
+    public function roundQuantity($symbol, $quantity): float
+    {
+        if (empty($this->info)) {
+            $this->info = $this->api->getExchangeInfo();
+        }
+        $info = $this->info;
+        if (!empty($info['symbols'])) {
+            foreach ($info['symbols'] as $symbolInfo) {
+                if ($symbolInfo['symbol'] === $symbol) {
+                    foreach ($symbolInfo['filters'] as $filter) {
+                        if ($filter['filterType'] === 'LOT_SIZE') {
+                            $stepSize = (float)$filter['stepSize'];
+                            $precision = intval(-log10($stepSize));
+                            return round($quantity - fmod($quantity, $stepSize), $precision);
+                        }
+                    }
+                }
+            }
+        }
+        return 0;
+    }
+
+    public function roundPrice($symbol, $price): float
+    {
+        if (empty($this->info)) {
+            $this->info = $this->api->getExchangeInfo();
+        }
+        $info = $this->info;
+        if (!empty($info['symbols'])) {
+            foreach ($info['symbols'] as $symbolInfo) {
+                if ($symbolInfo['symbol'] === $symbol) {
+                    foreach ($symbolInfo['filters'] as $filter) {
+                        if ($filter['filterType'] === 'PRICE_FILTER') {
+                            $tickSize = (float)$filter['tickSize'];
+                            $precision = intval(-log10($tickSize));
+                            return round($price - fmod($price, $tickSize), $precision);
+                        }
+                    }
+                }
+            }
+        }
+        return 0;
+    }
+
+    public function validateQuantity($symbol, $quantity): bool
+    {
+        if (empty($this->info)) {
+            $this->info = $this->api->getExchangeInfo();
+        }
+        $info = $this->info;
+        if (!empty($info['symbols'])) {
+            foreach ($info['symbols'] as $symbolInfo) {
+                if ($symbolInfo['symbol'] === $symbol) {
+                    $minNotional = 0;
+                    $stepSize = 0;
+                    $minQty = 0;
+                    $maxQty = 0;
+
+                    // Extract filter settings for LOT_SIZE and MIN_NOTIONAL
+                    foreach ($symbolInfo['filters'] as $filter) {
+                        if ($filter['filterType'] === 'LOT_SIZE') {
+                            $minQty = (float)$filter['minQty'];
+                            $maxQty = (float)$filter['maxQty'];
+                            $stepSize = (float)$filter['stepSize'];
+                        } elseif ($filter['filterType'] === 'MIN_NOTIONAL') {
+                            $minNotional = (float)$filter['notional'];
+                        }
+                    }
+
+                    // Validate quantity constraints
+                    if ($quantity < $minQty || $quantity > $maxQty) {
+                        return false;
+                    }
+                    if (fmod($quantity, $stepSize) != 0.0) {
+                        return false;
+                    }
+
+                    // Fetch current price for notional value calculation
+                    $currentPrice = $this->getLastPrice($symbol);  // Ensure this method fetches the latest market price
+                    if (($quantity * $currentPrice) < $minNotional) {
+                        return false;
+                    }
+
+                    return true; // All validation checks are passed
+                }
+            }
+        }
+        return false;
     }
 
     public function getSymbols($data): AnonymousResourceCollection
@@ -181,7 +280,7 @@ class ExchangeService implements ExchangeServiceInterface
         return $this->api->getOrder($symbol, $orderId, $origClientOrderId);
     }
 
-    public function getBalance($symbol, $isFutures = false)
+    public function getBalance()
     {
         return $this->api->getBalance();
     }

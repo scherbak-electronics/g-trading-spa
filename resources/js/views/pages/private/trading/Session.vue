@@ -181,6 +181,7 @@ let session;
 const stateExchange = useExchangeStateStore();
 const stateSession = useSessionStateStore();
 const lwChart = ref();
+const isFutures = ref(true);
 const chartContainer = ref(null);
 const pageLoading = ref(true);
 const chartLoading = ref(true);
@@ -299,8 +300,8 @@ const updateAndReloadSession = async () => {
 
 const reloadChartData = async () => {
     chartLoading.value = true;
-    const exchangeService = new ExchangeService();
-    let klineData = await exchangeService.getKlineData(stateExchange.symbol, stateExchange.interval, true);
+    const exchangeService = new ExchangeService(isFutures.value);
+    let klineData = await exchangeService.getKlineData(stateExchange.symbol, stateExchange.interval);
     if (!klineData) {
         loadingError();
         return null;
@@ -325,7 +326,7 @@ const reloadSession = async () => {
 };
 const loadSession = async () => {
     const sessionService = new SessionService();
-    const exchangeService = new ExchangeService();
+    const exchangeService = new ExchangeService(isFutures.value);
     const TEST_SESSION_ID = 1;
     const DEFAULT_INTERVAL = '1d';
     pageLoading.value = true;
@@ -369,7 +370,7 @@ const loadSession = async () => {
 };
 
 const updateLastBar = () => {
-    const exchangeService = new ExchangeService();
+    const exchangeService = new ExchangeService(isFutures.value);
     exchangeService.updateLastBar(stateExchange.symbol, stateExchange.interval)
         .then(lastBar => {
             if (lwChart?.value) {

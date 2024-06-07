@@ -35,5 +35,21 @@ class Session extends Model
         'quantity',
         'status'
     ];
+    protected $casts = [
+        'current_price' => 'float',
+        'total_investment' => 'float',
+        'total_profit' => 'float',
+        'main_level_price' => 'float',
+        'entry_point_price' => 'float',
+        'take_profit_price' => 'float',
+        'stop_loss_price' => 'float',
+        'trailing_delta' => 'float',
+        'quantity' => 'float'
+    ];
     protected $table = 'sessions';
+
+    public function getMode(): string
+    {
+        return $this->is_futures ? 'f' : 's';
+    }
 }

@@ -11,7 +11,7 @@ use App\Services\Trading\SessionService;
 
 class LogicFactory
 {
-    public function create($userId, $mode): Logic
+    public function create($userId, $mode, &$view): Logic
     {
         $sessionService = new SessionService();
         $exchangeServiceFactory = new ExchangeServiceFactory();
@@ -25,7 +25,8 @@ class LogicFactory
             $sessionService,
             $exchangeService,
             $userId,
-            $mode
+            $mode,
+            $view
         );
     }
 }

@@ -14,7 +14,8 @@ class UpdateSessionRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'state' => 'nullable|in:new,running,stopped,completed',
+            'state' => 'nullable|in:wait_for_entry_point,position_opened,position_closed,stop_loss_triggered',
+            'status' => 'nullable|in:new,active,running,stopped,completed',
             'strategy_code' => 'nullable',
             'total_investment' => 'nullable',
             'total_profit' => 'nullable',

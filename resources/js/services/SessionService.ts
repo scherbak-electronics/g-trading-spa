@@ -29,6 +29,7 @@ export default class SessionService extends ModelService {
     public async updateSession(id:number, data) {
         let params = `${id}`;
         let response = await this.patch(this.url + `/` + params, data);
+        //let response = await this.api.patch(this.url + `/` + params, data, {});
         if (response?.data?.session) {
             return response.data.session;
         }

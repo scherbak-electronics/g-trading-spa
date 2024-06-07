@@ -22,7 +22,7 @@ class SessionService
         $data['side'] = 'LONG';
         // ['new', 'active', 'stopped', 'completed']
         $data['status'] = 'new';
-        // ['wait_for_entry_point', 'position_opened']
+        // ['wait_for_entry_point', 'position_opened', 'position_closed', 'stop_loss_triggered']
         $data['state'] = 'wait_for_entry_point';
         return Session::query()->create($data);
     }
@@ -65,5 +65,42 @@ class SessionService
     public function update(array $data): bool|int
     {
         return Session::where('id', $data['id'])->update($data);
+    }
+
+    public function updateLevels(array $data): ?Session
+    {
+        $session = $this->getSession($data['id']);
+        if ($session) {
+            if (!empty($data['entry_point_price'])) {
+                $session->entry_point_price = $data['entry_point_price'];
+            }
+            if (!empty($data['take_profit_price'])) {
+                $session->take_profit_price = $data['take_profit_price'];
+            }
+            if (!empty($data['stop_loss_price'])) {
+                $session->stop_loss_price = $data['stop_loss_price'];
+            }
+            $session->save();
+        }
+        return $session;
+    }
+
+    public function openPosition(Session $session): void
+    {
+        $session->state = 'position_opened';
+        $session->save();
+    }
+
+    public function closePosition(Session $session): void
+    {
+        $session->state = 'position_closed';
+        $session->status = 'completed';
+        $session->save();
+    }
+
+    public function stopLoss(Session $session): void
+    {
+        $session->state = 'stop_loss_triggered';
+        $session->save();
     }
 }

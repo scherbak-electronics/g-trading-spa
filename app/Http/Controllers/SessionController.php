@@ -32,7 +32,8 @@ class SessionController extends Controller
     public function update(UpdateSessionRequest $request, Session $session): JsonResponse
     {
         $validatedData = $request->validated();
-        $session->update($validatedData);
+        $validatedData['id'] = $session->id;
+        $this->sessionService->updateLevels($validatedData);
         $data = ['session' => 'ok'];
         return response()->json($data);
     }

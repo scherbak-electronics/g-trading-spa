@@ -51,20 +51,23 @@ class RunCommand extends Command
         );
         $this->info("Mode selected: " . ($mode === 'f' ? 'Futures' : 'Spot'));
 
-        $this->view = $this->viewFactory->create($this, $this->output);
-        $logic = $this->logicFactory->create($userId, $mode);
+        $this->view = $this->createView();
+        $logic = $this->logicFactory->create($userId, $mode, $this->view);
 
         $this->exchangeService = $logic->getExchangeService();
         $this->sessionService = $logic->getSessionService();
 
         $session = $this->setUpSession($userId, $mode);
-        $this->view->session($session);
+
 
         if (!$this->confirm('Run session?')) {
             return;
         }
 
         $listenKey = $this->exchangeService->getListenKey();
+        if (is_array($listenKey) && $listenKey['listenKey']) {
+            $listenKey = $listenKey['listenKey'];
+        }
         $this->info("Listen Key:");
         $this->info(print_r($listenKey, true));
         $loop = Loop::get();
@@ -104,15 +107,9 @@ class RunCommand extends Command
         }
 
         $callbacks = [
-            'message' => function($conn, $eventJson) use ($logic, $mode) {
+            'message' => function($conn, $eventJson) use (&$logic, $mode) {
                 $event = json_decode($eventJson, true);
-                $itemsCount = count($event);
-                $result = $logic->socketEventHandler($event);
-                $this->view->render([
-                    'mode' => $mode === 'f' ? 'Futures' : 'Spot',
-                    'items_count' => $itemsCount,
-                    'params' => $result
-                ]);
+                $logic->socketEventHandler($event);
             },
             'pong' => function($conn) {
                 $this->line("received pong from server");
@@ -125,6 +122,7 @@ class RunCommand extends Command
             }
         ];
         $client->ticker($callbacks);
+        $client->userData($listenKey, $callbacks);
         $loop->run();
 
         // Make sure to reset terminal settings if loop exits unexpectedly
@@ -250,5 +248,10 @@ class RunCommand extends Command
         // Output the selected user
         $this->info("You have selected: " . $selectedEmail);
         return $selectedUserId;
+    }
+
+    private function createView(): View
+    {
+        return $this->viewFactory->create($this, $this->output);
     }
 }
